@@ -1,0 +1,1571 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Simulacro ICFES - Matemáticas (Numérico-variacional)</title>
+
+    <!-- Chart.js para gráficos -->
+    <script src="./chart.umd.min.js"></script>
+
+    <!-- Supabase JS Client -->
+    <script src="./supabase-js@2"></script>
+
+    <style>
+        /* ============================================ */
+        /* ESTILOS PROFESIONALES TIPO ICFES */
+        /* ============================================ */
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px 0;
+        }
+
+        /* ============================================ */
+        /* MODAL OVERLAY */
+        /* ============================================ */
+
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+            animation: fadeIn 0.3s ease;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        .modal-contenido {
+            background: white;
+            padding: 2.5rem;
+            border-radius: 12px;
+            max-width: 450px;
+            width: 90%;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            animation: slideUp 0.4s ease;
+        }
+
+        @keyframes slideUp {
+            from { transform: translateY(50px); opacity: 0; }
+            to { transform: translateY(0); opacity: 1; }
+        }
+
+        .modal-contenido h2 {
+            color: #333;
+            margin-bottom: 1rem;
+            font-size: 1.5rem;
+        }
+
+        .modal-contenido p {
+            color: #666;
+            margin-bottom: 1.5rem;
+            line-height: 1.6;
+        }
+
+        /* ============================================ */
+        /* FORMULARIOS */
+        /* ============================================ */
+
+        .form-group {
+            margin-bottom: 1.5rem;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 0.5rem;
+            color: #333;
+            font-weight: 600;
+        }
+
+        .form-group input {
+            width: 100%;
+            padding: 0.75rem;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 1rem;
+            transition: border-color 0.3s;
+        }
+
+        .form-group input:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        /* ============================================ */
+        /* BOTONES */
+        /* ============================================ */
+
+        .btn {
+            padding: 0.75rem 1.5rem;
+            border: none;
+            border-radius: 8px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            text-align: center;
+        }
+
+        .btn-primario {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            width: 100%;
+        }
+
+        .btn-primario:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        }
+
+        .btn-primario:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .btn-secundario {
+            background: #f5f5f5;
+            color: #333;
+        }
+
+        .btn-secundario:hover {
+            background: #e0e0e0;
+        }
+
+        .btn-finalizar {
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+            color: white;
+        }
+
+        /* ============================================ */
+        /* MENSAJES */
+        /* ============================================ */
+
+        .mensaje-error {
+            background: #ffebee;
+            color: #c62828;
+            padding: 1rem;
+            border-radius: 8px;
+            border-left: 4px solid #c62828;
+            margin-top: 1rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .mensaje-loading {
+            background: #e3f2fd;
+            color: #1565c0;
+            padding: 1rem;
+            border-radius: 8px;
+            border-left: 4px solid #1565c0;
+            margin-top: 1rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .mensaje-advertencia {
+            background: #fff3e0;
+            color: #e65100;
+            padding: 1rem;
+            border-radius: 8px;
+            border-left: 4px solid #e65100;
+            margin-top: 1rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        /* ============================================ */
+        /* CONTENEDOR PRINCIPAL DEL TEST */
+        /* ============================================ */
+
+        .contenedor-test {
+            background: white;
+            width: 95%;
+            max-width: 1200px;
+            min-height: 90vh;
+            border-radius: 12px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            overflow: hidden;
+            display: none;
+        }
+
+        .header-test {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 1.5rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 1rem;
+        }
+
+        .header-test h1 {
+            font-size: 1.5rem;
+        }
+
+        .info-estudiante {
+            display: flex;
+            gap: 2rem;
+            flex-wrap: wrap;
+        }
+
+        .info-estudiante span {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        /* ============================================ */
+        /* INSTRUCCIONES */
+        /* ============================================ */
+
+        .contenedor-instrucciones {
+            background: white;
+            width: 95%;
+            max-width: 900px;
+            padding: 3rem;
+            border-radius: 12px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            display: none;
+        }
+
+        .contenedor-instrucciones h1 {
+            color: #667eea;
+            margin-bottom: 0.5rem;
+        }
+
+        .contenedor-instrucciones h2 {
+            color: #333;
+            margin-bottom: 1.5rem;
+        }
+
+        .instrucciones-contenido {
+            color: #555;
+            line-height: 1.8;
+            margin-bottom: 2rem;
+        }
+
+        .instrucciones-contenido ul {
+            list-style: none;
+            padding-left: 0;
+        }
+
+        .instrucciones-contenido li {
+            padding: 0.5rem 0;
+            padding-left: 1.5rem;
+            position: relative;
+        }
+
+        .instrucciones-contenido li:before {
+            content: "✓";
+            position: absolute;
+            left: 0;
+            color: #667eea;
+            font-weight: bold;
+        }
+
+        .competencias {
+            background: #f5f5f5;
+            padding: 1.5rem;
+            border-radius: 8px;
+            margin-top: 1.5rem;
+        }
+
+        .competencias h3 {
+            color: #333;
+            margin-bottom: 1rem;
+        }
+
+        /* ============================================ */
+        /* BARRA DE PROGRESO */
+        /* ============================================ */
+
+        .progreso {
+            padding: 1.5rem;
+            background: #f9f9f9;
+            border-bottom: 1px solid #e0e0e0;
+        }
+
+        .progreso-info {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 0.75rem;
+            font-weight: 600;
+            color: #555;
+        }
+
+        .barra-progreso {
+            width: 100%;
+            height: 8px;
+            background: #e0e0e0;
+            border-radius: 10px;
+            overflow: hidden;
+        }
+
+        .progreso-actual {
+            height: 100%;
+            background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
+            transition: width 0.3s ease;
+            border-radius: 10px;
+        }
+
+        /* ============================================ */
+        /* PREGUNTA */
+        /* ============================================ */
+
+        .pregunta-contenedor {
+            padding: 2rem;
+            max-width: 900px;
+            margin: 0 auto;
+        }
+
+        .pregunta-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1.5rem;
+            flex-wrap: wrap;
+            gap: 1rem;
+        }
+
+        .numero-pregunta {
+            font-size: 1.25rem;
+            font-weight: bold;
+            color: #667eea;
+        }
+
+        .etiquetas {
+            display: flex;
+            gap: 0.5rem;
+            flex-wrap: wrap;
+        }
+
+        .etiqueta-competencia {
+            background: #e8eaf6;
+            color: #667eea;
+            padding: 0.4rem 1rem;
+            border-radius: 20px;
+            font-size: 0.85rem;
+            font-weight: 600;
+        }
+
+        .etiqueta-componente {
+            background: #e0f7fa;
+            color: #00838f;
+            padding: 0.4rem 1rem;
+            border-radius: 20px;
+            font-size: 0.85rem;
+            font-weight: 600;
+        }
+
+        .contexto {
+            background: #f5f5f5;
+            padding: 1.5rem;
+            border-radius: 8px;
+            margin-bottom: 1.5rem;
+            line-height: 1.8;
+            color: #333;
+        }
+
+        .contenedor-grafico {
+            margin: 1.5rem 0;
+            padding: 1.5rem;
+            background: #fafafa;
+            border-radius: 8px;
+            border: 1px solid #e0e0e0;
+        }
+
+        .contenedor-grafico canvas {
+            max-height: 400px;
+        }
+
+        .contenedor-grafico table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 1rem;
+        }
+
+        .contenedor-grafico th,
+        .contenedor-grafico td {
+            border: 1px solid #ddd;
+            padding: 12px;
+            text-align: center;
+        }
+
+        .contenedor-grafico th {
+            background: #f5f5f5;
+            font-weight: 600;
+        }
+
+        .pregunta-texto {
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: #333;
+            margin: 1.5rem 0;
+            line-height: 1.6;
+        }
+
+        /* ============================================ */
+        /* OPCIONES DE RESPUESTA */
+        /* ============================================ */
+
+        .opciones {
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+        }
+
+        .opcion {
+            display: flex;
+            align-items: flex-start;
+            padding: 1rem 1.25rem;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s;
+            background: white;
+        }
+
+        .opcion:hover {
+            border-color: #667eea;
+            background: #f5f7ff;
+        }
+
+        .opcion.seleccionada {
+            border-color: #667eea;
+            background: #e8eaf6;
+        }
+
+        .opcion input[type="radio"] {
+            display: none;
+        }
+
+        .letra-opcion {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            background: #f5f5f5;
+            color: #666;
+            font-weight: bold;
+            margin-right: 1rem;
+            flex-shrink: 0;
+            transition: all 0.3s;
+        }
+
+        .opcion.seleccionada .letra-opcion {
+            background: #667eea;
+            color: white;
+        }
+
+        .texto-opcion {
+            flex: 1;
+            line-height: 1.6;
+            color: #333;
+        }
+
+        /* ============================================ */
+        /* NAVEGACIÓN */
+        /* ============================================ */
+
+        .navegacion {
+            padding: 1.5rem 2rem;
+            border-top: 1px solid #e0e0e0;
+            display: flex;
+            justify-content: space-between;
+            gap: 1rem;
+            flex-wrap: wrap;
+        }
+
+        .navegacion button {
+            padding: 0.75rem 2rem;
+        }
+
+        /* ============================================ */
+        /* MAPA DE PREGUNTAS */
+        /* ============================================ */
+
+        .mapa-preguntas {
+            padding: 1.5rem 2rem;
+            background: #fafafa;
+            border-top: 1px solid #e0e0e0;
+        }
+
+        .mapa-preguntas h4 {
+            margin-bottom: 1rem;
+            color: #555;
+        }
+
+        .mapa-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(50px, 1fr));
+            gap: 0.5rem;
+            margin-bottom: 1rem;
+        }
+
+        .btn-mapa {
+            width: 50px;
+            height: 50px;
+            border: 2px solid #e0e0e0;
+            background: white;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.3s;
+        }
+
+        .btn-mapa:hover {
+            border-color: #667eea;
+            transform: scale(1.05);
+        }
+
+        .btn-mapa.respondida {
+            background: #4caf50;
+            color: white;
+            border-color: #4caf50;
+        }
+
+        .btn-mapa.actual {
+            background: #667eea;
+            color: white;
+            border-color: #667eea;
+        }
+
+        .leyenda-mapa {
+            display: flex;
+            gap: 2rem;
+            flex-wrap: wrap;
+            font-size: 0.9rem;
+            color: #666;
+        }
+
+        .leyenda-mapa span {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .indicador {
+            width: 20px;
+            height: 20px;
+            border-radius: 4px;
+            border: 2px solid #e0e0e0;
+        }
+
+        .indicador.respondida {
+            background: #4caf50;
+            border-color: #4caf50;
+        }
+
+        .indicador.pendiente {
+            background: white;
+        }
+
+        /* ============================================ */
+        /* MODAL DE ÉXITO */
+        /* ============================================ */
+
+        .exito-icono {
+            font-size: 4rem;
+            text-align: center;
+            margin-bottom: 1rem;
+        }
+
+        .modal-acciones {
+            display: flex;
+            gap: 1rem;
+            margin-top: 1.5rem;
+        }
+
+        .modal-acciones button {
+            flex: 1;
+        }
+
+        .resumen-respuestas {
+            background: #f5f5f5;
+            padding: 1rem;
+            border-radius: 8px;
+            margin: 1rem 0;
+        }
+
+        .resumen-respuestas p {
+            margin: 0.5rem 0;
+        }
+
+        /* ============================================ */
+        /* RESPONSIVE */
+        /* ============================================ */
+
+        @media (max-width: 768px) {
+            .header-test {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+
+            .mapa-grid {
+                grid-template-columns: repeat(auto-fill, minmax(45px, 1fr));
+            }
+
+            .navegacion {
+                flex-direction: column;
+            }
+
+            .navegacion button {
+                width: 100%;
+            }
+
+            .etiquetas {
+                flex-direction: column;
+            }
+        }
+    </style>
+</head>
+<body>
+
+<!-- ============================================ -->
+<!-- MODAL DE AUTENTICACIÓN -->
+<!-- ============================================ -->
+<div id="modal-autenticacion" class="modal-overlay">
+    <div class="modal-contenido">
+        <h2>🎓 Simulacro ICFES - Matemáticas</h2>
+        <p><strong>Componente: Numérico-variacional</strong></p>
+        <p>Ingresa tu número de documento para acceder al test</p>
+
+        <form id="form-autenticacion">
+            <div class="form-group">
+                <label for="documento">Número de Documento</label>
+                <input
+                        type="text"
+                        id="documento"
+                        placeholder="Ej: 1234567890"
+                        required
+                        pattern="[0-9]+"
+                        title="Solo números"
+                        maxlength="15"
+                >
+            </div>
+            <button type="submit" class="btn btn-primario">Ingresar</button>
+        </form>
+
+        <div id="error-autenticacion" class="mensaje-error" style="display:none;">
+            <span>❌</span>
+            <span>Documento no encontrado. Contacta al administrador.</span>
+        </div>
+
+        <div id="loading-autenticacion" class="mensaje-loading" style="display:none;">
+            <span>🔄</span>
+            <span>Verificando documento...</span>
+        </div>
+    </div>
+</div>
+
+<!-- ============================================ -->
+<!-- PANTALLA DE INSTRUCCIONES -->
+<!-- ============================================ -->
+<div id="instrucciones" class="contenedor-instrucciones">
+    <h1>¡Bienvenido/a, <span id="nombre-estudiante"></span>!</h1>
+    <h2>Instrucciones del Simulacro - Componente Numérico-variacional</h2>
+
+    <div class="instrucciones-contenido">
+        <p><strong>Esta prueba contiene 15 preguntas de selección múltiple con única respuesta enfocadas en el componente numérico-variacional.</strong></p>
+
+        <ul>
+            <li>Lee cuidadosamente cada pregunta y su contexto</li>
+            <li>Algunas preguntas incluyen gráficos, tablas o expresiones algebraicas</li>
+            <li>Selecciona UNA opción de respuesta (A, B, C o D)</li>
+            <li>Puedes navegar entre preguntas usando los botones</li>
+            <li>El mapa inferior te permite ir directamente a cualquier pregunta</li>
+            <li><strong>TODAS las preguntas son obligatorias. No podrás enviar hasta responderlas todas</strong></li>
+            <li><strong>Una vez envíes tus respuestas, no podrás modificarlas</strong></li>
+        </ul>
+
+        <div class="competencias">
+            <h3>📊 Contenidos evaluados en esta prueba:</h3>
+            <ul>
+                <li><strong>Sistemas numéricos:</strong> Números reales, operaciones, propiedades</li>
+                <li><strong>Proporcionalidad:</strong> Razones, proporciones, variación directa e inversa</li>
+                <li><strong>Álgebra:</strong> Expresiones algebraicas, ecuaciones, sistemas de ecuaciones</li>
+                <li><strong>Funciones:</strong> Lineales, cuadráticas, exponenciales</li>
+                <li><strong>Patrones y sucesiones:</strong> Secuencias numéricas y algebraicas</li>
+            </ul>
+        </div>
+    </div>
+
+    <button id="btn-comenzar" class="btn btn-primario">🚀 Comenzar Simulacro</button>
+</div>
+
+<!-- ============================================ -->
+<!-- CONTENEDOR PRINCIPAL DEL TEST -->
+<!-- ============================================ -->
+<div id="contenedor-test" class="contenedor-test">
+
+    <!-- Header -->
+    <div class="header-test">
+        <h1>📐 Simulacro ICFES - Numérico-variacional</h1>
+        <div class="info-estudiante">
+            <span>👤 <strong id="header-nombre"></strong></span>
+            <span>🆔 <strong id="header-documento"></strong></span>
+        </div>
+    </div>
+
+    <!-- Barra de progreso -->
+    <div class="progreso">
+        <div class="progreso-info">
+            <span id="contador-preguntas">Pregunta 1 de 15</span>
+            <span id="contador-respondidas">Respondidas: 0/15</span>
+        </div>
+        <div class="barra-progreso">
+            <div class="progreso-actual" style="width: 0%;"></div>
+        </div>
+    </div>
+
+    <!-- Pregunta actual -->
+    <div id="pregunta-actual" class="pregunta-contenedor">
+        <!-- Se renderiza dinámicamente con JavaScript -->
+    </div>
+
+    <!-- Navegación -->
+    <div class="navegacion">
+        <button id="btn-anterior" class="btn btn-secundario" disabled>← Anterior</button>
+        <button id="btn-siguiente" class="btn btn-primario">Siguiente →</button>
+        <button id="btn-finalizar" class="btn btn-finalizar" style="display:none;">✓ Finalizar Test</button>
+    </div>
+
+    <!-- Mapa de preguntas -->
+    <div class="mapa-preguntas">
+        <h4>Navegación rápida:</h4>
+        <div id="mapa-botones" class="mapa-grid">
+            <!-- Botones 1-15 generados dinámicamente -->
+        </div>
+        <div class="leyenda-mapa">
+            <span><span class="indicador respondida"></span> Respondida</span>
+            <span><span class="indicador pendiente"></span> Pendiente</span>
+        </div>
+    </div>
+
+</div>
+
+<!-- ============================================ -->
+<!-- MODAL DE CONFIRMACIÓN -->
+<!-- ============================================ -->
+<div id="modal-confirmacion" class="modal-overlay" style="display:none;">
+    <div class="modal-contenido">
+        <h2>⚠️ ¿Finalizar el simulacro?</h2>
+
+        <div class="resumen-respuestas">
+            <p>Has respondido <strong id="total-respondidas">0</strong> de <strong>15</strong> preguntas.</p>
+            <div id="advertencia-pendientes" style="display:none;" class="mensaje-advertencia">
+                <span>⚠️</span>
+                <span>Tienes <strong id="num-pendientes"></strong> preguntas sin responder. <strong>Debes responder todas las preguntas antes de enviar.</strong></span>
+            </div>
+        </div>
+
+        <p style="margin-top: 1rem;">Una vez envíes, no podrás modificar tus respuestas.</p>
+
+        <div class="modal-acciones">
+            <button id="btn-continuar" class="btn btn-secundario">← Revisar respuestas</button>
+            <button id="btn-confirmar-envio" class="btn btn-finalizar">Sí, enviar respuestas →</button>
+        </div>
+    </div>
+</div>
+
+<!-- ============================================ -->
+<!-- MODAL DE ÉXITO -->
+<!-- ============================================ -->
+<div id="modal-exito" class="modal-overlay" style="display:none;">
+    <div class="modal-contenido">
+        <div class="exito-icono">✅</div>
+        <h2>¡Respuestas enviadas correctamente!</h2>
+        <p>Gracias por completar el simulacro, <strong id="exito-nombre"></strong>.</p>
+        <p>Tus resultados serán procesados y estarán disponibles próximamente.</p>
+        <button class="btn btn-primario" onclick="location.reload()">Cerrar</button>
+    </div>
+</div>
+
+<script>
+    // ============================================
+    // ⚙️ CONFIGURACIÓN DE SUPABASE
+    // ============================================
+    // 🔴 REEMPLAZA ESTOS VALORES CON TU CONFIGURACIÓN
+    const SUPABASE_URL = 'https://ikutsomtkzccnuvdvpen.supabase.co';  // Ejemplo: 'https://abcdefgh.supabase.co'
+    const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImlrdXRzb210a3pjY251dmR2cGVuIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjE5OTUxODMsImV4cCI6MjA3NzU3MTE4M30.G95k132Zvf7bDlLHrLqGxjUzhT0Vmr70ZWsbsPF1PfY';  // Ejemplo: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...'
+
+
+    // Inicializar cliente de Supabase
+    const { createClient } = supabase;
+    const supabaseClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+    // ============================================
+    // VARIABLES GLOBALES
+    // ============================================
+    let estudianteActual = {
+        documento: null,
+        nombre: ''
+    };
+
+    let estadoTest = {
+        preguntaActual: 0,
+        respuestas: {}, // { numeroPregunta: 'A' }
+        horaInicio: null
+    };
+
+    // ============================================
+    // BANCO DE PREGUNTAS (15 preguntas Numérico-variacional)
+    // ============================================
+    const bancoPreguntas = [
+        // PREGUNTA 1 - Proporcionalidad directa
+        {
+            numero: 1,
+            competencia: "Formulación y ejecución",
+            componente: "Numérico-variacional",
+            tema: "Proporcionalidad directa",
+            dificultad: "media",
+            contexto: "Una constructora tiene un proyecto de vivienda donde 8 trabajadores pueden construir una casa en 60 días. La empresa necesita acelerar el proceso y contrata más personal.",
+            tiene_grafico: false,
+            pregunta: "Si la constructora quiere terminar la casa en 40 días trabajando al mismo ritmo, ¿cuántos trabajadores en total necesita?",
+            opciones: {
+                A: "10 trabajadores",
+                B: "12 trabajadores",
+                C: "15 trabajadores",
+                D: "16 trabajadores"
+            },
+            respuesta_correcta: "B",
+            justificacion: "Por proporcionalidad inversa: 8×60 = x×40, entonces x = 12 trabajadores"
+        },
+
+        // PREGUNTA 2 - Sistema de ecuaciones lineales con tabla
+        {
+            numero: 2,
+            competencia: "Interpretación y representación",
+            componente: "Numérico-variacional",
+            tema: "Sistemas de ecuaciones lineales",
+            dificultad: "media",
+            contexto: "En una cafetería se venden dos tipos de bebidas: café a $3.500 y chocolate a $4.000. El dueño registró las ventas de la semana en la siguiente tabla:",
+            tiene_grafico: true,
+            tipo_grafico: "tabla",
+            datos_grafico: {
+                headers: ["Día", "Ventas totales"],
+                rows: [
+                    ["Lunes", "$175.000"],
+                    ["Martes", "$196.000"],
+                    ["Miércoles", "$210.000"]
+                ]
+            },
+            pregunta: "Si el lunes se vendieron 30 cafés y el resto fueron chocolates, ¿cuántos chocolates se vendieron ese día?",
+            opciones: {
+                A: "15 chocolates",
+                B: "18 chocolates",
+                C: "20 chocolates",
+                D: "25 chocolates"
+            },
+            respuesta_correcta: "C",
+            justificacion: "3500(30) + 4000x = 175000, entonces 4000x = 70000, x = 20 chocolates"
+        },
+
+        // PREGUNTA 3 - Función lineal (gráfico)
+        {
+            numero: 3,
+            competencia: "Interpretación y representación",
+            componente: "Numérico-variacional",
+            tema: "Funciones lineales",
+            dificultad: "media",
+            contexto: "Una empresa de transporte cobra una tarifa base más un valor por kilómetro recorrido. La siguiente gráfica muestra el costo del servicio según la distancia:",
+            tiene_grafico: true,
+            tipo_grafico: "lineal",
+            configuracion_grafico: {
+                type: 'line',
+                data: {
+                    labels: ['0', '5', '10', '15', '20'],
+                    datasets: [{
+                        label: 'Costo ($)',
+                        data: [5000, 7500, 10000, 12500, 15000],
+                        borderColor: '#667eea',
+                        backgroundColor: 'rgba(102, 126, 234, 0.1)',
+                        borderWidth: 3,
+                        tension: 0
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { display: true },
+                        title: { display: true, text: 'Costo del servicio de transporte' }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            title: { display: true, text: 'Costo (pesos)' }
+                        },
+                        x: {
+                            title: { display: true, text: 'Distancia (km)' }
+                        }
+                    }
+                }
+            },
+            pregunta: "¿Cuál es la expresión que representa el costo C en función de la distancia d en kilómetros?",
+            opciones: {
+                A: "C = 500d + 5000",
+                B: "C = 5000d + 500",
+                C: "C = 250d + 5000",
+                D: "C = 300d + 5000"
+            },
+            respuesta_correcta: "A",
+            justificacion: "La pendiente es (7500-5000)/(5-0) = 500 pesos/km y el intercepto es 5000"
+        },
+
+        // PREGUNTA 4 - Porcentajes y aumentos sucesivos
+        {
+            numero: 4,
+            competencia: "Formulación y ejecución",
+            componente: "Numérico-variacional",
+            tema: "Porcentajes - Aumentos sucesivos",
+            dificultad: "alta",
+            contexto: "Un comerciante compra un artículo y le aplica dos aumentos sucesivos: primero del 20% y luego del 15% sobre el nuevo precio. Después de estos aumentos, el artículo cuesta $82.800.",
+            tiene_grafico: false,
+            pregunta: "¿Cuál era el precio original del artículo antes de los aumentos?",
+            opciones: {
+                A: "$55.000",
+                B: "$60.000",
+                C: "$65.000",
+                D: "$70.000"
+            },
+            respuesta_correcta: "B",
+            justificacion: "Precio final = Precio inicial × 1.20 × 1.15 = Precio inicial × 1.38. Entonces 82800 = x × 1.38, x = 60000"
+        },
+
+        // PREGUNTA 5 - Sucesiones aritméticas
+        {
+            numero: 5,
+            competencia: "Razonamiento y argumentación",
+            componente: "Numérico-variacional",
+            tema: "Sucesiones aritméticas",
+            dificultad: "media",
+            contexto: "Un auditor nota que las ventas mensuales de una tienda siguen un patrón aritmético. En enero vendieron $2.500.000, en febrero $2.850.000, en marzo $3.200.000 y así sucesivamente.",
+            tiene_grafico: false,
+            pregunta: "Si el patrón continúa, ¿cuánto venderán en el mes de julio (mes 7)?",
+            opciones: {
+                A: "$4.400.000",
+                B: "$4.600.000",
+                C: "$4.750.000",
+                D: "$4.900.000"
+            },
+            respuesta_correcta: "A",
+            justificacion: "La diferencia común es 350.000. Término n = 2500000 + (n-1)×350000. Para n=7: 2500000 + 6×350000 = 4.600.000"
+        },
+
+        // PREGUNTA 6 - Ecuación cuadrática contextualizada
+        {
+            numero: 6,
+            competencia: "Formulación y ejecución",
+            componente: "Numérico-variacional",
+            tema: "Ecuaciones cuadráticas",
+            dificultad: "alta",
+            contexto: "Un granjero quiere construir un corral rectangular que tenga un área de 300 m². Sabe que el largo debe ser 5 metros más que el ancho.",
+            tiene_grafico: false,
+            pregunta: "Si x representa el ancho del corral en metros, ¿cuál ecuación permite determinar las dimensiones?",
+            opciones: {
+                A: "x² + 5x = 300",
+                B: "x² + 5x - 300 = 0",
+                C: "x(x+5) = 300",
+                D: "Todas las anteriores son correctas"
+            },
+            respuesta_correcta: "D",
+            justificacion: "Todas representan la misma ecuación: Área = ancho × largo = x(x+5) = 300, que se puede escribir como x² + 5x = 300 o x² + 5x - 300 = 0"
+        },
+
+        // PREGUNTA 7 - Función exponencial (gráfico de barras)
+        {
+            numero: 7,
+            competencia: "Interpretación y representación",
+            componente: "Numérico-variacional",
+            tema: "Crecimiento exponencial",
+            dificultad: "media",
+            contexto: "Una empresa de tecnología analiza el crecimiento de sus usuarios registrados durante 5 años. Los datos muestran el siguiente comportamiento:",
+            tiene_grafico: true,
+            tipo_grafico: "barras",
+            configuracion_grafico: {
+                type: 'bar',
+                data: {
+                    labels: ['Año 1', 'Año 2', 'Año 3', 'Año 4', 'Año 5'],
+                    datasets: [{
+                        label: 'Usuarios (miles)',
+                        data: [10, 20, 40, 80, 160],
+                        backgroundColor: ['#FF6384', '#36A2EB', '#FFCE56', '#4BC0C0', '#9966FF']
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { display: true },
+                        title: { display: true, text: 'Crecimiento de usuarios registrados' }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            title: { display: true, text: 'Miles de usuarios' }
+                        }
+                    }
+                }
+            },
+            pregunta: "¿Qué tipo de crecimiento presenta la cantidad de usuarios y cuál sería la expresión que mejor lo modela?",
+            opciones: {
+                A: "Crecimiento lineal: U = 10n + 10",
+                B: "Crecimiento exponencial: U = 10(2)ⁿ⁻¹",
+                C: "Crecimiento cuadrático: U = 5n²",
+                D: "Crecimiento constante: U = 50n"
+            },
+            respuesta_correcta: "B",
+            justificacion: "Los datos se duplican cada año: 10, 20, 40, 80, 160. Esto representa un crecimiento exponencial con base 2"
+        },
+
+        // PREGUNTA 8 - Razones y proporciones
+        {
+            numero: 8,
+            competencia: "Formulación y ejecución",
+            componente: "Numérico-variacional",
+            tema: "Razones y proporciones",
+            dificultad: "media",
+            contexto: "En una receta de panadería, la razón entre harina y azúcar es de 5:2. Para hacer 140 panes, se necesitan 35 kg de harina.",
+            tiene_grafico: false,
+            pregunta: "¿Cuántos kilogramos de azúcar se necesitan para hacer 140 panes?",
+            opciones: {
+                A: "10 kg",
+                B: "12 kg",
+                C: "14 kg",
+                D: "16 kg"
+            },
+            respuesta_correcta: "C",
+            justificacion: "Si la razón es 5:2, entonces harina/azúcar = 5/2. Por tanto: 35/x = 5/2, x = (35×2)/5 = 14 kg"
+        },
+
+        // PREGUNTA 9 - Variación inversa
+        {
+            numero: 9,
+            competencia: "Razonamiento y argumentación",
+            componente: "Numérico-variacional",
+            tema: "Variación inversa",
+            dificultad: "alta",
+            contexto: "En una fábrica, 12 máquinas empacadoras pueden procesar un lote de productos en 8 horas. La gerencia necesita procesar el mismo lote en menos tiempo.",
+            tiene_grafico: false,
+            pregunta: "¿Cuántas máquinas se necesitan para procesar el lote en 6 horas, manteniendo la misma eficiencia?",
+            opciones: {
+                A: "14 máquinas",
+                B: "15 máquinas",
+                C: "16 máquinas",
+                D: "18 máquinas"
+            },
+            respuesta_correcta: "C",
+            justificacion: "Por variación inversa: 12×8 = x×6, entonces x = 96/6 = 16 máquinas"
+        },
+
+        // PREGUNTA 10 - Operaciones con números racionales
+        {
+            numero: 10,
+            competencia: "Formulación y ejecución",
+            componente: "Numérico-variacional",
+            tema: "Operaciones con fracciones",
+            dificultad: "media",
+            contexto: "María gastó 2/5 de su salario en arriendo, 1/4 en alimentación y ahorró el resto. Si su salario mensual es de $2.000.000.",
+            tiene_grafico: false,
+            pregunta: "¿Cuánto dinero ahorró María ese mes?",
+            opciones: {
+                A: "$600.000",
+                B: "$650.000",
+                C: "$700.000",
+                D: "$750.000"
+            },
+            respuesta_correcta: "C",
+            justificacion: "Gastó 2/5 + 1/4 = 8/20 + 5/20 = 13/20. Ahorró 1 - 13/20 = 7/20. Entonces: (7/20)×2.000.000 = 700.000"
+        },
+
+        // PREGUNTA 11 - Sistema 2×2 (tabla de ventas)
+        {
+            numero: 11,
+            competencia: "Formulación y ejecución",
+            componente: "Numérico-variacional",
+            tema: "Sistemas de ecuaciones 2×2",
+            dificultad: "alta",
+            contexto: "Una tienda vende dos tipos de productos: básicos y premium. La siguiente tabla muestra las ventas de dos días:",
+            tiene_grafico: true,
+            tipo_grafico: "tabla",
+            datos_grafico: {
+                headers: ["Día", "Productos básicos", "Productos premium", "Ingreso total"],
+                rows: [
+                    ["Lunes", "15", "8", "$590.000"],
+                    ["Martes", "20", "12", "$800.000"]
+                ]
+            },
+            pregunta: "¿Cuál es el precio de un producto premium?",
+            opciones: {
+                A: "$25.000",
+                B: "$30.000",
+                C: "$35.000",
+                D: "$40.000"
+            },
+            respuesta_correcta: "C",
+            justificacion: "Sistema: 15b + 8p = 590000 y 20b + 12p = 800000. Resolviendo: b = 18000 y p = 35000"
+        },
+
+        // PREGUNTA 12 - Interés compuesto
+        {
+            numero: 12,
+            competencia: "Interpretación y representación",
+            componente: "Numérico-variacional",
+            tema: "Interés compuesto",
+            dificultad: "alta",
+            contexto: "Un inversionista deposita $5.000.000 en una cuenta que paga el 8% de interés anual compuesto.",
+            tiene_grafico: false,
+            pregunta: "¿Cuál expresión representa el capital C después de n años?",
+            opciones: {
+                A: "C = 5.000.000(1 + 0,08n)",
+                B: "C = 5.000.000(1,08)ⁿ",
+                C: "C = 5.000.000 + 0,08n",
+                D: "C = 5.000.000(1 + 8n)"
+            },
+            respuesta_correcta: "B",
+            justificacion: "En interés compuesto: C = Capital_inicial × (1 + tasa)ⁿ = 5.000.000(1,08)ⁿ"
+        },
+
+        // PREGUNTA 13 - Patrón algebraico
+        {
+            numero: 13,
+            competencia: "Razonamiento y argumentación",
+            componente: "Numérico-variacional",
+            tema: "Patrones y generalización",
+            dificultad: "media",
+            contexto: "En una secuencia de figuras formadas por cuadrados, la figura 1 tiene 4 cuadrados, la figura 2 tiene 7 cuadrados, la figura 3 tiene 10 cuadrados, y así sucesivamente.",
+            tiene_grafico: false,
+            pregunta: "¿Cuál expresión representa el número de cuadrados en la figura n?",
+            opciones: {
+                A: "3n + 1",
+                B: "4n",
+                C: "3n - 1",
+                D: "n + 3"
+            },
+            respuesta_correcta: "A",
+            justificacion: "La secuencia aumenta de 3 en 3. Término general: an = 4 + 3(n-1) = 3n + 1"
+        },
+
+        // PREGUNTA 14 - Desigualdades lineales
+        {
+            numero: 14,
+            competencia: "Formulación y ejecución",
+            componente: "Numérico-variacional",
+            tema: "Desigualdades lineales",
+            dificultad: "media",
+            contexto: "Un vendedor gana un salario base de $800.000 más una comisión de $50.000 por cada venta realizada. Necesita ganar al menos $1.500.000 este mes para cubrir sus gastos.",
+            tiene_grafico: false,
+            pregunta: "¿Cuál desigualdad representa la cantidad mínima de ventas x que debe realizar?",
+            opciones: {
+                A: "800.000 + 50.000x ≥ 1.500.000",
+                B: "800.000 + 50.000x ≤ 1.500.000",
+                C: "50.000x ≥ 1.500.000",
+                D: "800.000x + 50.000 ≥ 1.500.000"
+            },
+            respuesta_correcta: "A",
+            justificacion: "El ingreso total es salario base + comisiones: 800.000 + 50.000x. Debe ser mayor o igual a 1.500.000"
+        },
+
+        // PREGUNTA 15 - Función cuadrática (vértice)
+        {
+            numero: 15,
+            competencia: "Interpretación y representación",
+            componente: "Numérico-variacional",
+            tema: "Funciones cuadráticas",
+            dificultad: "alta",
+            contexto: "Una empresa determina que sus ganancias G (en millones de pesos) según el precio p del producto se modelan con la función: G(p) = -2p² + 40p - 150",
+            tiene_grafico: false,
+            pregunta: "¿A qué precio se maximizan las ganancias?",
+            opciones: {
+                A: "$8",
+                B: "$10",
+                C: "$15",
+                D: "$20"
+            },
+            respuesta_correcta: "B",
+            justificacion: "El vértice de una parábola ax² + bx + c está en x = -b/(2a) = -40/(2×(-2)) = -40/(-4) = 10"
+        }
+    ];
+
+    // ============================================
+    // AUTENTICACIÓN
+    // ============================================
+    document.getElementById('form-autenticacion').addEventListener('submit', async (e) => {
+        e.preventDefault();
+
+        const documento = parseInt(document.getElementById('documento').value.trim());
+        const errorDiv = document.getElementById('error-autenticacion');
+        const loadingDiv = document.getElementById('loading-autenticacion');
+
+        // Mostrar loading
+        errorDiv.style.display = 'none';
+        loadingDiv.style.display = 'flex';
+
+        try {
+            // Consultar tabla estudiantes en Supabase
+            const { data, error } = await supabaseClient
+                .from('estudiantes')
+                .select('documento, nombre')
+                .eq('documento', documento)
+                .single();
+
+            loadingDiv.style.display = 'none';
+
+            if (error || !data) {
+                // Documento no encontrado
+                errorDiv.style.display = 'flex';
+                return;
+            }
+
+            // Estudiante encontrado
+            estudianteActual.documento = data.documento;
+            estudianteActual.nombre = data.nombre;
+
+            // Ocultar modal, mostrar instrucciones
+            document.getElementById('modal-autenticacion').style.display = 'none';
+            document.getElementById('nombre-estudiante').textContent = estudianteActual.nombre;
+            document.getElementById('instrucciones').style.display = 'flex';
+
+        } catch (error) {
+            console.error('Error al consultar Supabase:', error);
+            loadingDiv.style.display = 'none';
+            errorDiv.innerHTML = '<span>❌</span><span>Error de conexión. Intenta nuevamente.</span>';
+            errorDiv.style.display = 'flex';
+        }
+    });
+
+    // ============================================
+    // INICIAR TEST
+    // ============================================
+    document.getElementById('btn-comenzar').addEventListener('click', () => {
+        estadoTest.horaInicio = new Date();
+
+        // Actualizar header
+        document.getElementById('header-nombre').textContent = estudianteActual.nombre;
+        document.getElementById('header-documento').textContent = estudianteActual.documento;
+
+        // Ocultar instrucciones, mostrar test
+        document.getElementById('instrucciones').style.display = 'none';
+        document.getElementById('contenedor-test').style.display = 'block';
+
+        // Generar mapa de navegación
+        generarMapaPreguntas();
+
+        // Renderizar primera pregunta
+        renderizarPregunta(0);
+    });
+
+    // ============================================
+    // RENDERIZAR PREGUNTA
+    // ============================================
+    function renderizarPregunta(index) {
+        const pregunta = bancoPreguntas[index];
+        const contenedor = document.getElementById('pregunta-actual');
+
+        let htmlGrafico = '';
+        if (pregunta.tiene_grafico) {
+            if (pregunta.tipo_grafico === 'tabla') {
+                htmlGrafico = generarTabla(pregunta.datos_grafico);
+            } else {
+                htmlGrafico = `<div class="contenedor-grafico">
+            <canvas id="grafico-pregunta-${pregunta.numero}"></canvas>
+          </div>`;
+            }
+        }
+
+        contenedor.innerHTML = `
+        <div class="pregunta-header">
+          <span class="numero-pregunta">Pregunta ${pregunta.numero}</span>
+          <div class="etiquetas">
+            <span class="etiqueta-competencia">${pregunta.competencia}</span>
+            <span class="etiqueta-componente">${pregunta.componente}</span>
+          </div>
+        </div>
+
+        <div class="contexto">${pregunta.contexto}</div>
+
+        ${htmlGrafico}
+
+        <div class="pregunta-texto">${pregunta.pregunta}</div>
+
+        <div class="opciones">
+          ${Object.entries(pregunta.opciones).map(([letra, texto]) => `
+            <label class="opcion ${estadoTest.respuestas[pregunta.numero] === letra ? 'seleccionada' : ''}">
+              <input
+                type="radio"
+                name="respuesta-${pregunta.numero}"
+                value="${letra}"
+                ${estadoTest.respuestas[pregunta.numero] === letra ? 'checked' : ''}
+              >
+              <span class="letra-opcion">${letra}</span>
+              <span class="texto-opcion">${texto}</span>
+            </label>
+          `).join('')}
+        </div>
+      `;
+
+        // Renderizar gráfico si existe (y no es tabla)
+        if (pregunta.tiene_grafico && pregunta.tipo_grafico !== 'tabla') {
+            setTimeout(() => renderizarGrafico(pregunta), 100);
+        }
+
+        // Event listeners para opciones
+        document.querySelectorAll(`input[name="respuesta-${pregunta.numero}"]`).forEach(input => {
+            input.addEventListener('change', (e) => {
+                estadoTest.respuestas[pregunta.numero] = e.target.value;
+
+                // Actualizar visualmente
+                document.querySelectorAll('.opcion').forEach(op => op.classList.remove('seleccionada'));
+                e.target.closest('.opcion').classList.add('seleccionada');
+
+                actualizarEstado();
+            });
+        });
+
+        // Actualizar navegación
+        actualizarNavegacion(index);
+        actualizarEstado();
+    }
+
+    // ============================================
+    // GENERAR TABLA HTML
+    // ============================================
+    function generarTabla(datos) {
+        return `
+        <div class="contenedor-grafico">
+          <table>
+            <thead>
+              <tr>
+                ${datos.headers.map(h => `<th>${h}</th>`).join('')}
+              </tr>
+            </thead>
+            <tbody>
+              ${datos.rows.map(row => `
+                <tr>
+                  ${row.map(cell => `<td>${cell}</td>`).join('')}
+                </tr>
+              `).join('')}
+            </tbody>
+          </table>
+        </div>
+      `;
+    }
+
+    // ============================================
+    // RENDERIZAR GRÁFICOS (Chart.js)
+    // ============================================
+    function renderizarGrafico(pregunta) {
+        const ctx = document.getElementById(`grafico-pregunta-${pregunta.numero}`);
+        if (!ctx) return;
+
+        // Crear gráfico según configuración
+        new Chart(ctx.getContext('2d'), pregunta.configuracion_grafico);
+    }
+
+    // ============================================
+    // NAVEGACIÓN
+    // ============================================
+    document.getElementById('btn-siguiente').addEventListener('click', () => {
+        if (estadoTest.preguntaActual < bancoPreguntas.length - 1) {
+            estadoTest.preguntaActual++;
+            renderizarPregunta(estadoTest.preguntaActual);
+        }
+    });
+
+    document.getElementById('btn-anterior').addEventListener('click', () => {
+        if (estadoTest.preguntaActual > 0) {
+            estadoTest.preguntaActual--;
+            renderizarPregunta(estadoTest.preguntaActual);
+        }
+    });
+
+    // ============================================
+    // FINALIZAR TEST
+    // ============================================
+    document.getElementById('btn-finalizar').addEventListener('click', () => {
+        const respondidas = Object.keys(estadoTest.respuestas).length;
+        const pendientes = bancoPreguntas.length - respondidas;
+
+        document.getElementById('total-respondidas').textContent = respondidas;
+
+        if (pendientes > 0) {
+            document.getElementById('num-pendientes').textContent = pendientes;
+            document.getElementById('advertencia-pendientes').style.display = 'flex';
+            // Deshabilitar botón de envío si hay pendientes
+            document.getElementById('btn-confirmar-envio').disabled = true;
+            document.getElementById('btn-confirmar-envio').style.opacity = '0.5';
+            document.getElementById('btn-confirmar-envio').style.cursor = 'not-allowed';
+        } else {
+            document.getElementById('advertencia-pendientes').style.display = 'none';
+            document.getElementById('btn-confirmar-envio').disabled = false;
+            document.getElementById('btn-confirmar-envio').style.opacity = '1';
+            document.getElementById('btn-confirmar-envio').style.cursor = 'pointer';
+        }
+
+        document.getElementById('modal-confirmacion').style.display = 'flex';
+    });
+
+    document.getElementById('btn-continuar').addEventListener('click', () => {
+        document.getElementById('modal-confirmacion').style.display = 'none';
+    });
+
+    document.getElementById('btn-confirmar-envio').addEventListener('click', async () => {
+        // Verificación final antes de enviar
+        const respondidas = Object.keys(estadoTest.respuestas).length;
+        if (respondidas < bancoPreguntas.length) {
+            alert('❌ Debes responder todas las preguntas antes de enviar.');
+            return;
+        }
+
+        await enviarRespuestas();
+    });
+
+    // ============================================
+    // ENVÍO A SUPABASE
+    // ============================================
+    async function enviarRespuestas() {
+        // Verificación final
+        const respondidas = Object.keys(estadoTest.respuestas).length;
+        if (respondidas < bancoPreguntas.length) {
+            alert('❌ No se puede enviar. Debes responder todas las preguntas.');
+            return;
+        }
+
+        // Preparar objeto de respuestas SIMPLE
+        const objetoRespuestas = {};
+        bancoPreguntas.forEach(pregunta => {
+            objetoRespuestas[pregunta.numero] = estadoTest.respuestas[pregunta.numero] || 'SIN_RESPUESTA';
+        });
+
+        // Preparar objeto de respuestas DETALLADAS con análisis
+        const respuestasDetalladas = {};
+        bancoPreguntas.forEach(pregunta => {
+            const respuestaEstudiante = estadoTest.respuestas[pregunta.numero] || 'SIN_RESPUESTA';
+            const esCorrecta = respuestaEstudiante === pregunta.respuesta_correcta;
+
+            respuestasDetalladas[pregunta.numero] = {
+                respuesta: respuestaEstudiante,
+                competencia: pregunta.competencia,
+                componente: pregunta.componente,
+                tema: pregunta.tema,
+                acierto: esCorrecta,
+                respuesta_correcta: pregunta.respuesta_correcta
+            };
+        });
+
+        // Preparar registro único
+        const registro = {
+            documento_estudiante: estudianteActual.documento,
+            respuestas: objetoRespuestas,
+            respuestas_detalladas: respuestasDetalladas
+        };
+
+        try {
+            const { data, error } = await supabaseClient
+                .from('respuestas_estudiantes')
+                .insert([registro]);
+
+            if (error) throw error;
+
+            // Mostrar éxito
+            document.getElementById('modal-confirmacion').style.display = 'none';
+            document.getElementById('exito-nombre').textContent = estudianteActual.nombre;
+            document.getElementById('modal-exito').style.display = 'flex';
+
+        } catch (error) {
+            console.error('Error al enviar respuestas:', error);
+            alert('❌ Error al enviar respuestas. Por favor, intenta nuevamente.\n\n' + error.message);
+        }
+    }
+
+    // ============================================
+    // FUNCIONES AUXILIARES
+    // ============================================
+    function actualizarEstado() {
+        const respondidas = Object.keys(estadoTest.respuestas).length;
+        const progreso = (respondidas / bancoPreguntas.length) * 100;
+
+        document.getElementById('contador-preguntas').textContent =
+            `Pregunta ${estadoTest.preguntaActual + 1} de ${bancoPreguntas.length}`;
+        document.getElementById('contador-respondidas').textContent =
+            `Respondidas: ${respondidas}/${bancoPreguntas.length}`;
+        document.querySelector('.progreso-actual').style.width = `${progreso}%`;
+
+        // Actualizar mapa
+        actualizarMapaPreguntas();
+    }
+
+    function generarMapaPreguntas() {
+        const mapa = document.getElementById('mapa-botones');
+        mapa.innerHTML = bancoPreguntas.map((p, i) =>
+            `<button class="btn-mapa" data-index="${i}">${p.numero}</button>`
+        ).join('');
+
+        mapa.querySelectorAll('.btn-mapa').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                const index = parseInt(e.target.dataset.index);
+                estadoTest.preguntaActual = index;
+                renderizarPregunta(index);
+            });
+        });
+    }
+
+    function actualizarMapaPreguntas() {
+        document.querySelectorAll('.btn-mapa').forEach((btn, i) => {
+            const numeroPregunta = bancoPreguntas[i].numero;
+            btn.classList.remove('respondida', 'actual');
+
+            if (estadoTest.respuestas[numeroPregunta]) {
+                btn.classList.add('respondida');
+            }
+
+            if (i === estadoTest.preguntaActual) {
+                btn.classList.add('actual');
+            }
+        });
+    }
+
+    function actualizarNavegacion(index) {
+        document.getElementById('btn-anterior').disabled = (index === 0);
+
+        if (index === bancoPreguntas.length - 1) {
+            document.getElementById('btn-siguiente').style.display = 'none';
+            document.getElementById('btn-finalizar').style.display = 'inline-block';
+        } else {
+            document.getElementById('btn-siguiente').style.display = 'inline-block';
+            document.getElementById('btn-finalizar').style.display = 'none';
+        }
+    }
+
+</script>
+
+</body>
+</html>
