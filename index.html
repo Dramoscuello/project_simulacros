@@ -883,15 +883,15 @@
             contexto: "Una fábrica de cajas produce contenedores con diferentes dimensiones. En la tabla se muestran las medidas de tres modelos de cajas rectangulares y sus costos de producción.",
             tiene_grafico: true,
             tipo_grafico: "tabla",
-            pregunta: "Si el costo de producción está directamente relacionado con el área total de material usado, ¿qué modelo tiene la mejor relación costo-beneficio por metro cuadrado?",
+            pregunta: "¿Qué modelo tiene el menor costo de producción por metro cuadrado de superficie?",
             opciones: {
                 A: "Modelo A",
                 B: "Modelo B",
                 C: "Modelo C",
-                D: "Todos tienen la misma relación"
+                D: "Todos tienen el mismo costo por m²"
             },
-            respuesta_correcta: "B",
-            justificacion: "El Modelo B tiene el menor costo por metro cuadrado de superficie total."
+            respuesta_correcta: "C",
+            justificacion: "Área superficial: Modelo A = 13m² (6,538 $/m²), Modelo B = 20.8m² (5,288 $/m²), Modelo C = 31.5m² (4,603 $/m²). El Modelo C tiene el menor costo por m²."
         },
 
         // PREGUNTA 5 - Formulación y ejecución - Proporcionalidad
@@ -1070,10 +1070,10 @@
                 A: "3.55",
                 B: "3.60",
                 C: "3.65",
-                D: "3.70"
+                D: "3.71"
             },
-            respuesta_correcta: "C",
-            justificacion: "Promedio = (8×3.0 + 12×3.5 + 15×4.0 + 5×4.5) / 40 = 146 / 40 = 3.65."
+            respuesta_correcta: "D",
+            justificacion: "Promedio = (8×3.0 + 12×3.5 + 15×4.0 + 5×4.5) / 40 = (24 + 42 + 60 + 22.5) / 40 = 148.5 / 40 = 3.7125 ≈ 3.71."
         },
 
         // PREGUNTA 14 - Formulación y ejecución - Optimización
@@ -1083,17 +1083,17 @@
             componente: "Numérico-variacional",
             tema: "Optimización - Máximos y mínimos",
             dificultad: "alta",
-            contexto: "Un granjero tiene 240 metros de cerca para construir un corral rectangular. Quiere aprovechar una pared existente como uno de los lados del corral, por lo que solo necesita cercar tres lados.",
+            contexto: "Un granjero tiene 240 metros de cerca para construir un corral rectangular. Quiere aprovechar una pared existente como uno de los lados largos del corral, por lo que solo necesita cercar los otros tres lados (dos lados perpendiculares a la pared y un lado paralelo opuesto).",
             tiene_grafico: false,
-            pregunta: "¿Cuáles deben ser las dimensiones del corral para obtener el área máxima?",
+            pregunta: "¿Cuáles deben ser las dimensiones del corral para obtener el área máxima? (ancho perpendicular a la pared × largo paralelo a la pared)",
             opciones: {
-                A: "80 m × 60 m",
-                B: "120 m × 60 m",
-                C: "100 m × 70 m",
-                D: "90 m × 75 m"
+                A: "80 m × 80 m",
+                B: "60 m × 120 m",
+                C: "70 m × 100 m",
+                D: "50 m × 140 m"
             },
             respuesta_correcta: "B",
-            justificacion: "Siendo x el lado perpendicular a la pared: 2x + y = 240, y = 240 - 2x. Área máxima cuando x = 60, y = 120."
+            justificacion: "Sea x el ancho perpendicular a la pared. Perímetro: 2x + y = 240, entonces y = 240 - 2x. Área = xy = x(240-2x). Derivando e igualando a cero: x = 60m, y = 120m."
         },
 
         // PREGUNTA 15 - Argumentación - Lógica matemática
