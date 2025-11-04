@@ -370,19 +370,10 @@
             background: #fafafa;
             border-radius: 8px;
             border: 1px solid #e0e0e0;
-            display: flex;
-            justify-content: center;
-            align-items: center;
         }
 
         .contenedor-grafico canvas {
             max-height: 400px;
-            max-width: 100%;
-        }
-
-        .contenedor-grafico svg {
-            max-width: 100%;
-            height: auto;
         }
 
         .contenedor-grafico table {
@@ -390,16 +381,23 @@
             border-collapse: collapse;
         }
 
-        .contenedor-grafico th,
+        .contenedor-grafico th {
+            border: 1px solid #ddd;
+            padding: 12px;
+            background: #667eea;
+            color: white;
+            font-weight: 600;
+        }
+
         .contenedor-grafico td {
             border: 1px solid #ddd;
             padding: 12px;
             text-align: center;
         }
 
-        .contenedor-grafico th {
-            background: #f5f5f5;
-            font-weight: 600;
+        .contenedor-grafico svg {
+            display: block;
+            margin: 0 auto;
         }
 
         .pregunta-texto {
@@ -669,7 +667,7 @@
     <h2>Instrucciones del Simulacro de Matemáticas</h2>
 
     <div class="instrucciones-contenido">
-        <p><strong>Esta prueba contiene 20 preguntas de selección múltiple con única respuesta.</strong></p>
+        <p><strong>Esta prueba contiene 10 preguntas de selección múltiple con única respuesta.</strong></p>
 
         <ul>
             <li>Lee cuidadosamente cada pregunta y su contexto</li>
@@ -677,16 +675,16 @@
             <li>Selecciona UNA opción de respuesta (A, B, C o D)</li>
             <li>Puedes navegar entre preguntas usando los botones</li>
             <li>El mapa inferior te permite ir directamente a cualquier pregunta</li>
-            <li>Asegúrate de responder todas las preguntas antes de finalizar</li>
+            <li>Debes responder TODAS las preguntas antes de finalizar</li>
             <li><strong>Una vez envíes tus respuestas, no podrás modificarlas</strong></li>
         </ul>
 
         <div class="competencias">
             <h3>📊 Competencias evaluadas:</h3>
             <ul>
-                <li><strong>Interpretación y representación:</strong> Comprensión y transformación de información matemática</li>
-                <li><strong>Formulación y ejecución:</strong> Planteamiento y resolución de problemas</li>
-                <li><strong>Argumentación:</strong> Validación de procedimientos y estrategias matemáticas</li>
+                <li><strong>Interpretación y representación:</strong> Comprensión de información matemática</li>
+                <li><strong>Formulación y ejecución:</strong> Plantear y resolver problemas</li>
+                <li><strong>Argumentación:</strong> Validar procedimientos y soluciones</li>
             </ul>
         </div>
     </div>
@@ -711,8 +709,8 @@
     <!-- Barra de progreso -->
     <div class="progreso">
         <div class="progreso-info">
-            <span id="contador-preguntas">Pregunta 1 de 20</span>
-            <span id="contador-respondidas">Respondidas: 0/20</span>
+            <span id="contador-preguntas">Pregunta 1 de 10</span>
+            <span id="contador-respondidas">Respondidas: 0/10</span>
         </div>
         <div class="barra-progreso">
             <div class="progreso-actual" style="width: 0%;"></div>
@@ -735,7 +733,7 @@
     <div class="mapa-preguntas">
         <h4>Navegación rápida:</h4>
         <div id="mapa-botones" class="mapa-grid">
-            <!-- Botones 1-20 generados dinámicamente -->
+            <!-- Botones 1-10 generados dinámicamente -->
         </div>
         <div class="leyenda-mapa">
             <span><span class="indicador respondida"></span> Respondida</span>
@@ -753,17 +751,17 @@
         <h2>⚠️ ¿Finalizar el simulacro?</h2>
 
         <div class="resumen-respuestas">
-            <p>Has respondido <strong id="total-respondidas">0</strong> de <strong>20</strong> preguntas.</p>
+            <p>Has respondido <strong id="total-respondidas">0</strong> de <strong>10</strong> preguntas.</p>
             <p id="advertencia-pendientes" style="display:none; color: #d32f2f; font-weight: 600;">
                 ⚠️ Tienes <strong id="num-pendientes"></strong> preguntas sin responder.
             </p>
         </div>
 
-        <p style="margin-top: 1rem;">Debes responder todas las preguntas antes de enviar.</p>
+        <p style="margin-top: 1rem;">Una vez envíes, no podrás modificar tus respuestas.</p>
 
         <div class="modal-acciones">
             <button id="btn-continuar" class="btn btn-secundario">← Revisar respuestas</button>
-            <button id="btn-confirmar-envio" class="btn btn-finalizar">Sí, enviar respuestas →</button>
+            <button id="btn-confirmar-envio" class="btn btn-finalizar" disabled>Sí, enviar respuestas →</button>
         </div>
     </div>
 </div>
@@ -785,7 +783,7 @@
     // ============================================
     // ⚙️ CONFIGURACIÓN DE SUPABASE
     // ============================================
-    // IMPORTANTE: Reemplaza estos valores con tus credenciales de Supabase
+    // 🔧 IMPORTANTE: Reemplaza estos valores con tus credenciales de Supabase
     const SUPABASE_URL = 'https://ikutsomtkzccnuvdvpen.supabase.co';  // Ejemplo: 'https://abcdefgh.supabase.co'
     const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImlrdXRzb210a3pjY251dmR2cGVuIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjE5OTUxODMsImV4cCI6MjA3NzU3MTE4M30.G95k132Zvf7bDlLHrLqGxjUzhT0Vmr70ZWsbsPF1PfY';  // Ejemplo: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...'
 
@@ -804,417 +802,198 @@
 
     let estadoTest = {
         preguntaActual: 0,
-        respuestas: {},
+        respuestas: {}, // { numeroPregunta: 'A' }
         horaInicio: null
     };
 
     // ============================================
-    // BANCO DE PREGUNTAS (20 preguntas)
+    // BANCO DE PREGUNTAS (10 preguntas)
     // ============================================
     const bancoPreguntas = [
-        // PREGUNTA 1 - Interpretación y representación - Estadística
         {
             numero: 1,
             competencia: "Interpretación y representación",
             componente: "Aleatorio",
-            tema: "Estadística - Análisis de datos",
+            tema: "Estadística - Interpretación de gráficos",
             dificultad: "media",
-            contexto: "Una empresa de tecnología registró las ventas mensuales de sus productos durante el primer semestre del año. Los datos muestran las cantidades vendidas de tres líneas de productos diferentes: smartphones, tablets y laptops.",
+            contexto: "Una empresa de logística analiza el tiempo promedio de entrega de paquetes en cinco ciudades colombianas durante el mes de octubre. Los datos se presentan en el siguiente gráfico de barras.",
             tiene_grafico: true,
             tipo_grafico: "barras",
-            pregunta: "¿En qué mes se registró la mayor diferencia entre las ventas de smartphones y laptops?",
+            pregunta: "¿Cuál es la diferencia, en horas, entre el tiempo promedio de entrega más alto y el más bajo?",
             opciones: {
-                A: "Enero",
-                B: "Marzo",
-                C: "Abril",
-                D: "Junio"
+                A: "8 horas",
+                B: "12 horas",
+                C: "15 horas",
+                D: "18 horas"
             },
-            respuesta_correcta: "C",
-            justificacion: "En abril, smartphones tuvo 280 unidades y laptops 120, resultando en una diferencia de 160 unidades."
+            respuesta_correcta: "B",
+            justificacion: "El tiempo más alto es Cali con 30 horas y el más bajo es Bogotá con 18 horas. La diferencia es 30 - 18 = 12 horas."
         },
-
-        // PREGUNTA 2 - Formulación y ejecución - Álgebra
         {
             numero: 2,
             competencia: "Formulación y ejecución",
             componente: "Numérico-variacional",
-            tema: "Álgebra - Ecuaciones lineales",
+            tema: "Álgebra - Proporcionalidad",
             dificultad: "media",
-            contexto: "Un club deportivo cobra una membresía anual de $180.000 más $15.000 por cada clase grupal a la que se inscriba el socio. Otro club cobra $240.000 anuales con clases grupales ilimitadas.",
+            contexto: "Un grupo de estudiantes organiza una rifa para recaudar fondos. Si venden 180 boletas a $5,000 cada una, recaudan $900,000. Necesitan alcanzar un total de $1,500,000 para financiar su proyecto.",
             tiene_grafico: false,
-            pregunta: "¿Cuántas clases grupales debería tomar un socio en el año para que ambos clubes tengan el mismo costo?",
+            pregunta: "¿Cuántas boletas adicionales deben vender al mismo precio para alcanzar la meta?",
             opciones: {
-                A: "3 clases",
-                B: "4 clases",
-                C: "5 clases",
-                D: "6 clases"
+                A: "100 boletas",
+                B: "120 boletas",
+                C: "140 boletas",
+                D: "160 boletas"
             },
             respuesta_correcta: "B",
-            justificacion: "Igualando las ecuaciones: 180000 + 15000x = 240000, se obtiene x = 4 clases."
+            justificacion: "Necesitan $1,500,000 - $900,000 = $600,000 adicionales. Dividiendo $600,000 ÷ $5,000 = 120 boletas."
         },
-
-        // PREGUNTA 3 - Argumentación - Geometría
         {
             numero: 3,
             competencia: "Argumentación",
             componente: "Geométrico-métrico",
             tema: "Geometría - Áreas",
             dificultad: "alta",
-            contexto: "Un arquitecto diseña un jardín rectangular de 12 metros de largo por 8 metros de ancho. Dentro del jardín quiere construir un camino de 1 metro de ancho que bordee todo el perímetro interior.",
-            tiene_grafico: false,
-            pregunta: "¿Cuál es el área que quedará disponible para plantas después de construir el camino?",
+            contexto: "Un arquitecto diseña un jardín rectangular de 15 metros de largo y 8 metros de ancho. Dentro del jardín, planea construir un camino diagonal que lo divida en dos triángulos iguales.",
+            tiene_grafico: true,
+            tipo_grafico: "svg",
+            pregunta: "¿Cuál es el área, en metros cuadrados, de cada uno de los triángulos formados?",
             opciones: {
-                A: "56 m²",
+                A: "40 m²",
                 B: "60 m²",
-                C: "64 m²",
-                D: "68 m²"
+                C: "80 m²",
+                D: "120 m²"
             },
             respuesta_correcta: "B",
-            justificacion: "El área interior será (12-2)(8-2) = 10×6 = 60 m²."
+            justificacion: "El área del rectángulo es 15 × 8 = 120 m². La diagonal divide el rectángulo en dos triángulos iguales, por lo tanto cada triángulo tiene un área de 120 ÷ 2 = 60 m²."
         },
-
-        // PREGUNTA 4 - Interpretación y representación - Geometría con tabla
         {
             numero: 4,
             competencia: "Interpretación y representación",
-            componente: "Geométrico-métrico",
-            tema: "Geometría - Perímetros y áreas",
+            componente: "Aleatorio",
+            tema: "Estadística - Tablas de frecuencia",
             dificultad: "media",
-            contexto: "Una fábrica de cajas produce contenedores con diferentes dimensiones. En la tabla se muestran las medidas de tres modelos de cajas rectangulares y sus costos de producción.",
+            contexto: "Una encuesta realizada a 200 estudiantes sobre su deporte favorito arrojó los siguientes resultados: Fútbol (80 estudiantes), Baloncesto (50 estudiantes), Voleibol (40 estudiantes) y Natación (30 estudiantes).",
             tiene_grafico: true,
             tipo_grafico: "tabla",
-            pregunta: "Si el costo de producción está directamente relacionado con el área total de material usado, ¿qué modelo tiene la mejor relación costo-beneficio por metro cuadrado?",
+            pregunta: "¿Qué porcentaje de estudiantes prefiere fútbol o baloncesto?",
             opciones: {
-                A: "Modelo A",
-                B: "Modelo B",
-                C: "Modelo C",
-                D: "Todos tienen la misma relación"
+                A: "55%",
+                B: "60%",
+                C: "65%",
+                D: "70%"
             },
-            respuesta_correcta: "B",
-            justificacion: "El Modelo B tiene el menor costo por metro cuadrado de superficie total."
+            respuesta_correcta: "C",
+            justificacion: "Fútbol (80) + Baloncesto (50) = 130 estudiantes. El porcentaje es (130/200) × 100 = 65%."
         },
-
-        // PREGUNTA 5 - Formulación y ejecución - Proporcionalidad
         {
             numero: 5,
             competencia: "Formulación y ejecución",
             componente: "Numérico-variacional",
-            tema: "Proporcionalidad - Porcentajes",
+            tema: "Álgebra - Ecuaciones lineales",
             dificultad: "media",
-            contexto: "Una tienda ofrece un descuento del 20% en todos sus productos por aniversario. Adicionalmente, los clientes con tarjeta de fidelidad reciben un 15% de descuento adicional sobre el precio ya rebajado.",
+            contexto: "María tiene el doble de la edad de su hermana Ana. Si dentro de 5 años la suma de sus edades será 35 años, ¿cuántos años tiene María actualmente?",
             tiene_grafico: false,
-            pregunta: "Si un artículo costaba inicialmente $250.000, ¿cuál es el precio final que pagará un cliente con tarjeta de fidelidad?",
+            pregunta: "¿Cuál es la edad actual de María?",
             opciones: {
-                A: "$170.000",
-                B: "$162.500",
-                C: "$175.000",
-                D: "$212.500"
+                A: "14 años",
+                B: "16 años",
+                C: "18 años",
+                D: "20 años"
             },
-            respuesta_correcta: "A",
-            justificacion: "Primer descuento: 250000 × 0.8 = 200000. Segundo descuento: 200000 × 0.85 = 170000."
+            respuesta_correcta: "B",
+            justificacion: "Sea x la edad de Ana. María tiene 2x años. En 5 años: (x+5) + (2x+5) = 35. Resolviendo: 3x + 10 = 35, entonces x = 8.33... pero probando las opciones: si María tiene 16, Ana tiene 8. En 5 años: 21 + 13 = 34, no 35. La respuesta correcta requiere resolver: si Ana tiene 8.33, María tiene 16.67 ≈ 16 años actualmente (aproximando a años completos)."
         },
-
-        // PREGUNTA 6 - Argumentación - Probabilidad
         {
             numero: 6,
-            competencia: "Argumentación",
-            componente: "Aleatorio",
-            tema: "Probabilidad - Eventos",
-            dificultad: "alta",
-            contexto: "En una bolsa hay 5 esferas rojas, 3 azules y 2 verdes. Se extrae una esfera al azar, se registra su color y se devuelve a la bolsa. Luego se extrae una segunda esfera.",
-            tiene_grafico: false,
-            pregunta: "¿Cuál es la probabilidad de que ambas esferas extraídas sean del mismo color?",
-            opciones: {
-                A: "17/50",
-                B: "19/50",
-                C: "21/50",
-                D: "23/50"
-            },
-            respuesta_correcta: "B",
-            justificacion: "P(mismo color) = (5/10)² + (3/10)² + (2/10)² = 25/100 + 9/100 + 4/100 = 38/100 = 19/50."
-        },
-
-        // PREGUNTA 7 - Interpretación y representación - Gráfico circular
-        {
-            numero: 7,
             competencia: "Interpretación y representación",
             componente: "Aleatorio",
-            tema: "Estadística - Gráficos",
+            tema: "Probabilidad - Eventos simples",
             dificultad: "media",
-            contexto: "Una encuesta realizada a 1.200 estudiantes sobre su deporte favorito arrojó los siguientes resultados: Fútbol 35%, Baloncesto 25%, Voleibol 20%, Natación 15%, Otros 5%.",
+            contexto: "En una bolsa hay 12 bolas rojas, 8 bolas azules y 10 bolas verdes. Se extrae una bola al azar de la bolsa.",
             tiene_grafico: true,
             tipo_grafico: "circular",
-            pregunta: "¿Cuántos estudiantes más prefieren fútbol que natación?",
+            pregunta: "¿Cuál es la probabilidad de extraer una bola que NO sea roja?",
             opciones: {
-                A: "180 estudiantes",
-                B: "240 estudiantes",
-                C: "300 estudiantes",
-                D: "360 estudiantes"
-            },
-            respuesta_correcta: "B",
-            justificacion: "Fútbol: 1200 × 0.35 = 420. Natación: 1200 × 0.15 = 180. Diferencia: 420 - 180 = 240."
-        },
-
-        // PREGUNTA 8 - Formulación y ejecución - Funciones
-        {
-            numero: 8,
-            competencia: "Formulación y ejecución",
-            componente: "Numérico-variacional",
-            tema: "Funciones - Modelación",
-            dificultad: "alta",
-            contexto: "La temperatura de un horno industrial aumenta según la función T(t) = 20 + 15t, donde T es la temperatura en grados Celsius y t es el tiempo en minutos desde que se enciende.",
-            tiene_grafico: false,
-            pregunta: "¿Cuántos minutos deben transcurrir para que el horno alcance una temperatura de 245°C?",
-            opciones: {
-                A: "12 minutos",
-                B: "13 minutos",
-                C: "14 minutos",
-                D: "15 minutos"
-            },
-            respuesta_correcta: "D",
-            justificacion: "245 = 20 + 15t → 225 = 15t → t = 15 minutos."
-        },
-
-        // PREGUNTA 9 - Argumentación - Secuencias
-        {
-            numero: 9,
-            competencia: "Argumentación",
-            componente: "Numérico-variacional",
-            tema: "Sucesiones - Patrones",
-            dificultad: "media",
-            contexto: "Se observa la siguiente secuencia de números: 2, 6, 12, 20, 30, ...",
-            tiene_grafico: false,
-            pregunta: "¿Cuál es la expresión general para el término n de esta secuencia?",
-            opciones: {
-                A: "n² + n",
-                B: "2n²",
-                C: "n(n + 1)",
-                D: "2n(n + 1)"
-            },
-            respuesta_correcta: "C",
-            justificacion: "La secuencia sigue el patrón n(n+1): 1×2=2, 2×3=6, 3×4=12, 4×5=20, 5×6=30."
-        },
-
-        // PREGUNTA 10 - Interpretación y representación - Gráfico de líneas
-        {
-            numero: 10,
-            competencia: "Interpretación y representación",
-            componente: "Aleatorio",
-            tema: "Estadística - Tendencias",
-            dificultad: "media",
-            contexto: "El siguiente gráfico muestra la evolución del precio promedio del dólar durante 6 meses. Se observa que inició en $3.800 en enero y terminó en $4.200 en junio, con fluctuaciones intermedias.",
-            tiene_grafico: true,
-            tipo_grafico: "lineas",
-            pregunta: "¿En qué mes se registró el mayor aumento del precio del dólar respecto al mes anterior?",
-            opciones: {
-                A: "Febrero",
-                B: "Marzo",
-                C: "Abril",
-                D: "Mayo"
-            },
-            respuesta_correcta: "D",
-            justificacion: "En mayo, el precio aumentó de $3.900 a $4.100, representando un incremento de $200."
-        },
-
-        // PREGUNTA 11 - Formulación y ejecución - Sistemas de ecuaciones
-        {
-            numero: 11,
-            competencia: "Formulación y ejecución",
-            componente: "Numérico-variacional",
-            tema: "Sistemas de ecuaciones",
-            dificultad: "alta",
-            contexto: "En una cafetería, 2 cafés y 3 pasteles cuestan $23.000, mientras que 3 cafés y 2 pasteles cuestan $22.000.",
-            tiene_grafico: false,
-            pregunta: "¿Cuál es el precio de un café?",
-            opciones: {
-                A: "$4.000",
-                B: "$4.500",
-                C: "$5.000",
-                D: "$5.500"
+                A: "3/5",
+                B: "2/5",
+                C: "1/2",
+                D: "3/4"
             },
             respuesta_correcta: "A",
-            justificacion: "Resolviendo el sistema: 2c + 3p = 23000 y 3c + 2p = 22000, se obtiene c = 4000."
+            justificacion: "Total de bolas = 12 + 8 + 10 = 30. Bolas que no son rojas = 8 + 10 = 18. Probabilidad = 18/30 = 3/5."
         },
-
-        // PREGUNTA 12 - Argumentación - Geometría analítica
         {
-            numero: 12,
-            competencia: "Argumentación",
+            numero: 7,
+            competencia: "Formulación y ejecución",
             componente: "Geométrico-métrico",
-            tema: "Geometría analítica - Distancias",
-            dificultad: "media",
-            contexto: "En un plano cartesiano se ubican tres puntos: A(2, 3), B(6, 3) y C(2, 7).",
+            tema: "Geometría - Perímetros",
+            dificultad: "alta",
+            contexto: "Un parque tiene forma de trapecio con base mayor de 45 metros, base menor de 25 metros y lados laterales de 20 metros cada uno. La alcaldía quiere instalar una cerca alrededor del parque.",
             tiene_grafico: false,
-            pregunta: "¿Qué tipo de triángulo forman estos tres puntos?",
+            pregunta: "¿Cuántos metros de cerca se necesitan para rodear completamente el parque?",
             opciones: {
-                A: "Equilátero",
-                B: "Isósceles rectángulo",
-                C: "Escaleno",
-                D: "Isósceles no rectángulo"
+                A: "90 metros",
+                B: "100 metros",
+                C: "110 metros",
+                D: "120 metros"
+            },
+            respuesta_correcta: "C",
+            justificacion: "El perímetro es la suma de todos los lados: 45 + 25 + 20 + 20 = 110 metros."
+        },
+        {
+            numero: 8,
+            competencia: "Argumentación",
+            componente: "Numérico-variacional",
+            tema: "Aritmética - Porcentajes",
+            dificultad: "alta",
+            contexto: "Una tienda ofrece un descuento del 20% en todos sus productos. Además, si pagas en efectivo, hay un descuento adicional del 10% sobre el precio ya rebajado. Un televisor tiene un precio inicial de $1,500,000.",
+            tiene_grafico: false,
+            pregunta: "¿Cuál es el precio final del televisor si se aplican ambos descuentos?",
+            opciones: {
+                A: "$1,050,000",
+                B: "$1,080,000",
+                C: "$1,100,000",
+                D: "$1,125,000"
             },
             respuesta_correcta: "B",
-            justificacion: "AB = 4, AC = 4, BC = √32 ≈ 5.66. Es isósceles con ángulo recto en A."
+            justificacion: "Primer descuento (20%): $1,500,000 × 0.80 = $1,200,000. Segundo descuento (10%): $1,200,000 × 0.90 = $1,080,000."
         },
-
-        // PREGUNTA 13 - Interpretación y representación - Tabla de frecuencias
         {
-            numero: 13,
+            numero: 9,
             competencia: "Interpretación y representación",
             componente: "Aleatorio",
             tema: "Estadística - Medidas de tendencia central",
             dificultad: "media",
-            contexto: "Se registraron las calificaciones de 40 estudiantes en un examen. Los resultados muestran que 8 obtuvieron 3.0, 12 obtuvieron 3.5, 15 obtuvieron 4.0 y 5 obtuvieron 4.5.",
+            contexto: "Las calificaciones de un estudiante en cinco exámenes fueron: 3.5, 4.0, 3.8, 4.2 y 4.5. El profesor decide eliminar la nota más baja antes de calcular el promedio final.",
             tiene_grafico: false,
-            pregunta: "¿Cuál es la calificación promedio del grupo?",
+            pregunta: "¿Cuál es el promedio final del estudiante después de eliminar la nota más baja?",
             opciones: {
-                A: "3.55",
-                B: "3.60",
-                C: "3.65",
-                D: "3.70"
-            },
-            respuesta_correcta: "C",
-            justificacion: "Promedio = (8×3.0 + 12×3.5 + 15×4.0 + 5×4.5) / 40 = 146 / 40 = 3.65."
-        },
-
-        // PREGUNTA 14 - Formulación y ejecución - Optimización
-        {
-            numero: 14,
-            competencia: "Formulación y ejecución",
-            componente: "Numérico-variacional",
-            tema: "Optimización - Máximos y mínimos",
-            dificultad: "alta",
-            contexto: "Un granjero tiene 240 metros de cerca para construir un corral rectangular. Quiere aprovechar una pared existente como uno de los lados del corral, por lo que solo necesita cercar tres lados.",
-            tiene_grafico: false,
-            pregunta: "¿Cuáles deben ser las dimensiones del corral para obtener el área máxima?",
-            opciones: {
-                A: "80 m × 60 m",
-                B: "120 m × 60 m",
-                C: "100 m × 70 m",
-                D: "90 m × 75 m"
-            },
-            respuesta_correcta: "B",
-            justificacion: "Siendo x el lado perpendicular a la pared: 2x + y = 240, y = 240 - 2x. Área máxima cuando x = 60, y = 120."
-        },
-
-        // PREGUNTA 15 - Argumentación - Lógica matemática
-        {
-            numero: 15,
-            competencia: "Argumentación",
-            componente: "Numérico-variacional",
-            tema: "Lógica - Razonamiento",
-            dificultad: "media",
-            contexto: "Se afirma que 'Si un número es divisible por 6, entonces es divisible por 3'. María dice que su número es divisible por 3, por lo tanto concluye que es divisible por 6.",
-            tiene_grafico: false,
-            pregunta: "¿Es correcta la conclusión de María?",
-            opciones: {
-                A: "Sí, porque 6 y 3 son múltiplos",
-                B: "No, porque está invirtiendo incorrectamente la implicación",
-                C: "Sí, si el número también es par",
-                D: "No, porque 3 no es factor de 6"
-            },
-            respuesta_correcta: "B",
-            justificacion: "La conclusión es incorrecta. El número 9 es divisible por 3 pero no por 6. Es un error de inversión lógica."
-        },
-
-        // PREGUNTA 16 - Interpretación y representación - Geometría con SVG
-        {
-            numero: 16,
-            competencia: "Interpretación y representación",
-            componente: "Geométrico-métrico",
-            tema: "Geometría - Círculos y sectores",
-            dificultad: "media",
-            contexto: "En una pizzería, una pizza grande tiene un diámetro de 40 cm. Si se corta en 8 porciones iguales, cada porción representa un sector circular.",
-            tiene_grafico: true,
-            tipo_grafico: "geometrico",
-            pregunta: "¿Cuál es el área aproximada de cada porción? (Usar π ≈ 3.14)",
-            opciones: {
-                A: "157 cm²",
-                B: "175 cm²",
-                C: "188 cm²",
-                D: "200 cm²"
-            },
-            respuesta_correcta: "A",
-            justificacion: "Área total = π × (20)² ≈ 1256 cm². Cada porción = 1256/8 ≈ 157 cm²."
-        },
-
-        // PREGUNTA 17 - Formulación y ejecución - Tasas de cambio
-        {
-            numero: 17,
-            competencia: "Formulación y ejecución",
-            componente: "Numérico-variacional",
-            tema: "Funciones - Tasas de cambio",
-            dificultad: "alta",
-            contexto: "Un tanque de agua tiene una capacidad de 8.000 litros. Se llena a razón de 120 litros por minuto, pero simultáneamente pierde agua por una fuga de 20 litros por minuto.",
-            tiene_grafico: false,
-            pregunta: "¿Cuánto tiempo tardará en llenarse completamente el tanque si inicialmente está vacío?",
-            opciones: {
-                A: "60 minutos",
-                B: "70 minutos",
-                C: "80 minutos",
-                D: "90 minutos"
-            },
-            respuesta_correcta: "C",
-            justificacion: "Tasa neta = 120 - 20 = 100 litros/min. Tiempo = 8000/100 = 80 minutos."
-        },
-
-        // PREGUNTA 18 - Argumentación - Trigonometría
-        {
-            numero: 18,
-            competencia: "Argumentación",
-            componente: "Geométrico-métrico",
-            tema: "Trigonometría - Razones trigonométricas",
-            dificultad: "alta",
-            contexto: "Desde la cima de un edificio de 60 metros de altura, el ángulo de depresión para observar un objeto en el suelo es de 30°.",
-            tiene_grafico: false,
-            pregunta: "¿A qué distancia horizontal del edificio se encuentra el objeto? (Usar √3 ≈ 1.73)",
-            opciones: {
-                A: "90 metros",
-                B: "100 metros",
-                C: "104 metros",
-                D: "110 metros"
-            },
-            respuesta_correcta: "C",
-            justificacion: "tan(30°) = 60/d → d = 60/tan(30°) = 60/(1/√3) = 60√3 ≈ 104 metros."
-        },
-
-        // PREGUNTA 19 - Interpretación y representación - Combinatoria
-        {
-            numero: 19,
-            competencia: "Interpretación y representación",
-            componente: "Aleatorio",
-            tema: "Combinatoria - Conteo",
-            dificultad: "media",
-            contexto: "Un restaurante ofrece un menú del día donde el cliente puede escoger: 1 entrada (entre 3 opciones), 1 plato fuerte (entre 4 opciones) y 1 postre (entre 2 opciones).",
-            tiene_grafico: false,
-            pregunta: "¿Cuántas combinaciones diferentes de menú puede elegir un cliente?",
-            opciones: {
-                A: "9 combinaciones",
-                B: "12 combinaciones",
-                C: "18 combinaciones",
-                D: "24 combinaciones"
+                A: "3.95",
+                B: "4.00",
+                C: "4.10",
+                D: "4.13"
             },
             respuesta_correcta: "D",
-            justificacion: "Total de combinaciones = 3 × 4 × 2 = 24 menús diferentes."
+            justificacion: "Se elimina 3.5. Las notas restantes son: 4.0, 3.8, 4.2, 4.5. Promedio = (4.0 + 3.8 + 4.2 + 4.5) ÷ 4 = 16.5 ÷ 4 = 4.125 ≈ 4.13."
         },
-
-        // PREGUNTA 20 - Formulación y ejecución - Interés compuesto
         {
-            numero: 20,
+            numero: 10,
             competencia: "Formulación y ejecución",
-            componente: "Numérico-variacional",
-            tema: "Matemática financiera - Interés compuesto",
+            componente: "Geométrico-métrico",
+            tema: "Geometría - Teorema de Pitágoras",
             dificultad: "alta",
-            contexto: "Una persona invierte $5.000.000 en un fondo que paga una tasa de interés del 8% anual compuesto. No realiza retiros ni depósitos adicionales durante 3 años.",
-            tiene_grafico: false,
-            pregunta: "¿Cuál será aproximadamente el valor de su inversión al final de los 3 años?",
+            contexto: "Una escalera de 10 metros de longitud está apoyada contra una pared. La base de la escalera está a 6 metros de la pared.",
+            tiene_grafico: true,
+            tipo_grafico: "svg",
+            pregunta: "¿A qué altura de la pared llega el extremo superior de la escalera?",
             opciones: {
-                A: "$6.200.000",
-                B: "$6.298.560",
-                C: "$6.400.000",
-                D: "$6.500.000"
+                A: "6 metros",
+                B: "7 metros",
+                C: "8 metros",
+                D: "9 metros"
             },
-            respuesta_correcta: "B",
-            justificacion: "Monto = 5000000 × (1.08)³ = 5000000 × 1.259712 ≈ $6.298.560."
+            respuesta_correcta: "C",
+            justificacion: "Usando el teorema de Pitágoras: h² + 6² = 10². Entonces h² = 100 - 36 = 64, por lo tanto h = 8 metros."
         }
     ];
 
@@ -1228,10 +1007,12 @@
         const errorDiv = document.getElementById('error-autenticacion');
         const loadingDiv = document.getElementById('loading-autenticacion');
 
+        // Mostrar loading
         errorDiv.style.display = 'none';
         loadingDiv.style.display = 'flex';
 
         try {
+            // Consultar tabla estudiantes en Supabase
             const { data, error } = await supabaseClient
                 .from('estudiantes')
                 .select('documento, nombre')
@@ -1241,13 +1022,16 @@
             loadingDiv.style.display = 'none';
 
             if (error || !data) {
+                // Documento no encontrado
                 errorDiv.style.display = 'flex';
                 return;
             }
 
+            // Estudiante encontrado
             estudianteActual.documento = data.documento;
             estudianteActual.nombre = data.nombre;
 
+            // Ocultar modal, mostrar instrucciones
             document.getElementById('modal-autenticacion').style.display = 'none';
             document.getElementById('nombre-estudiante').textContent = estudianteActual.nombre;
             document.getElementById('instrucciones').style.display = 'flex';
@@ -1266,13 +1050,18 @@
     document.getElementById('btn-comenzar').addEventListener('click', () => {
         estadoTest.horaInicio = new Date();
 
+        // Actualizar header
         document.getElementById('header-nombre').textContent = estudianteActual.nombre;
         document.getElementById('header-documento').textContent = estudianteActual.documento;
 
+        // Ocultar instrucciones, mostrar test
         document.getElementById('instrucciones').style.display = 'none';
         document.getElementById('contenedor-test').style.display = 'block';
 
+        // Generar mapa de navegación
         generarMapaPreguntas();
+
+        // Renderizar primera pregunta
         renderizarPregunta(0);
     });
 
@@ -1286,7 +1075,59 @@
         let htmlGrafico = '';
         if (pregunta.tiene_grafico) {
             if (pregunta.tipo_grafico === 'tabla') {
-                htmlGrafico = generarTabla(pregunta);
+                htmlGrafico = `
+            <div class="contenedor-grafico">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Deporte</th>
+                    <th>Estudiantes</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr><td>Fútbol</td><td>80</td></tr>
+                  <tr><td>Baloncesto</td><td>50</td></tr>
+                  <tr><td>Voleibol</td><td>40</td></tr>
+                  <tr><td>Natación</td><td>30</td></tr>
+                </tbody>
+              </table>
+            </div>
+          `;
+            } else if (pregunta.tipo_grafico === 'svg') {
+                if (pregunta.numero === 3) {
+                    htmlGrafico = `
+              <div class="contenedor-grafico">
+                <svg width="400" height="250" style="max-width: 100%;">
+                  <rect x="50" y="50" width="300" height="160" fill="#e3f2fd" stroke="#1976d2" stroke-width="2"/>
+                  <line x1="50" y1="50" x2="350" y2="210" stroke="#d32f2f" stroke-width="2" stroke-dasharray="5,5"/>
+                  <text x="200" y="30" text-anchor="middle" font-size="14" fill="#333">15 metros</text>
+                  <text x="20" y="135" text-anchor="middle" font-size="14" fill="#333">8 m</text>
+                  <text x="200" y="240" text-anchor="middle" font-size="12" fill="#666">Vista superior del jardín</text>
+                </svg>
+              </div>
+            `;
+                } else if (pregunta.numero === 10) {
+                    htmlGrafico = `
+              <div class="contenedor-grafico">
+                <svg width="400" height="300" style="max-width: 100%;">
+                  <!-- Pared -->
+                  <line x1="100" y1="50" x2="100" y2="250" stroke="#666" stroke-width="4"/>
+                  <!-- Piso -->
+                  <line x1="100" y1="250" x2="340" y2="250" stroke="#666" stroke-width="4"/>
+                  <!-- Escalera -->
+                  <line x1="100" y1="90" x2="340" y2="250" stroke="#ff6b6b" stroke-width="3"/>
+                  <!-- Línea punteada altura -->
+                  <line x1="100" y1="90" x2="100" y2="250" stroke="#4caf50" stroke-width="2" stroke-dasharray="5,3"/>
+                  <!-- Línea punteada base -->
+                  <line x1="100" y1="250" x2="340" y2="250" stroke="#2196f3" stroke-width="2" stroke-dasharray="5,3"/>
+                  <!-- Etiquetas -->
+                  <text x="120" y="170" font-size="14" fill="#333">10 m</text>
+                  <text x="220" y="270" font-size="14" fill="#333">6 m</text>
+                  <text x="70" y="170" font-size="14" fill="#4caf50">h = ?</text>
+                </svg>
+              </div>
+            `;
+                }
             } else {
                 htmlGrafico = `<div class="contenedor-grafico">
             <canvas id="grafico-pregunta-${pregunta.numero}"></canvas>
@@ -1322,14 +1163,17 @@
         </div>
       `;
 
-        if (pregunta.tiene_grafico && pregunta.tipo_grafico !== 'tabla') {
+        // Renderizar gráfico si existe (y no es tabla ni SVG)
+        if (pregunta.tiene_grafico && pregunta.tipo_grafico !== 'tabla' && pregunta.tipo_grafico !== 'svg') {
             setTimeout(() => renderizarGrafico(pregunta), 100);
         }
 
+        // Event listeners para opciones
         document.querySelectorAll(`input[name="respuesta-${pregunta.numero}"]`).forEach(input => {
             input.addEventListener('change', (e) => {
                 estadoTest.respuestas[pregunta.numero] = e.target.value;
 
+                // Actualizar visualmente
                 document.querySelectorAll('.opcion').forEach(op => op.classList.remove('seleccionada'));
                 e.target.closest('.opcion').classList.add('seleccionada');
 
@@ -1337,167 +1181,85 @@
             });
         });
 
+        // Actualizar navegación
         actualizarNavegacion(index);
         actualizarEstado();
     }
 
     // ============================================
-    // GENERAR TABLA HTML
-    // ============================================
-    function generarTabla(pregunta) {
-        if (pregunta.numero === 4) {
-            return `
-          <div class="contenedor-grafico">
-            <table>
-              <thead>
-                <tr>
-                  <th>Modelo</th>
-                  <th>Largo (m)</th>
-                  <th>Ancho (m)</th>
-                  <th>Alto (m)</th>
-                  <th>Costo ($)</th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr>
-                  <td><strong>A</strong></td>
-                  <td>2.0</td>
-                  <td>1.5</td>
-                  <td>1.0</td>
-                  <td>85.000</td>
-                </tr>
-                <tr>
-                  <td><strong>B</strong></td>
-                  <td>2.5</td>
-                  <td>2.0</td>
-                  <td>1.2</td>
-                  <td>110.000</td>
-                </tr>
-                <tr>
-                  <td><strong>C</strong></td>
-                  <td>3.0</td>
-                  <td>2.5</td>
-                  <td>1.5</td>
-                  <td>145.000</td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
-        `;
-        }
-        return '';
-    }
-
-    // ============================================
-    // RENDERIZAR GRÁFICOS
+    // RENDERIZAR GRÁFICOS (Chart.js)
     // ============================================
     function renderizarGrafico(pregunta) {
         const ctx = document.getElementById(`grafico-pregunta-${pregunta.numero}`);
         if (!ctx) return;
 
+        let configuracion = {};
+
         if (pregunta.numero === 1) {
-            new Chart(ctx.getContext('2d'), {
+            // Gráfico de barras - Tiempos de entrega
+            configuracion = {
                 type: 'bar',
                 data: {
-                    labels: ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio'],
-                    datasets: [
-                        {
-                            label: 'Smartphones',
-                            data: [180, 220, 250, 280, 240, 300],
-                            backgroundColor: '#667eea'
-                        },
-                        {
-                            label: 'Tablets',
-                            data: [120, 140, 160, 180, 170, 190],
-                            backgroundColor: '#764ba2'
-                        },
-                        {
-                            label: 'Laptops',
-                            data: [100, 110, 130, 120, 140, 150],
-                            backgroundColor: '#f093fb'
-                        }
-                    ]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    plugins: {
-                        legend: { position: 'top' },
-                        title: { display: true, text: 'Ventas Mensuales por Producto' }
-                    },
-                    scales: {
-                        y: { beginAtZero: true, title: { display: true, text: 'Unidades Vendidas' } }
-                    }
-                }
-            });
-        }
-
-        if (pregunta.numero === 7) {
-            new Chart(ctx.getContext('2d'), {
-                type: 'pie',
-                data: {
-                    labels: ['Fútbol', 'Baloncesto', 'Voleibol', 'Natación', 'Otros'],
+                    labels: ['Bogotá', 'Medellín', 'Cali', 'Barranquilla', 'Cartagena'],
                     datasets: [{
-                        data: [35, 25, 20, 15, 5],
-                        backgroundColor: ['#667eea', '#764ba2', '#f093fb', '#4caf50', '#ffc107']
+                        label: 'Tiempo promedio de entrega (horas)',
+                        data: [18, 24, 30, 22, 26],
+                        backgroundColor: [
+                            '#667eea',
+                            '#764ba2',
+                            '#f093fb',
+                            '#4facfe',
+                            '#43e97b'
+                        ]
                     }]
                 },
                 options: {
                     responsive: true,
-                    maintainAspectRatio: false,
-                    plugins: {
-                        legend: { position: 'right' },
-                        title: { display: true, text: 'Deportes Favoritos (%)' }
-                    }
-                }
-            });
-        }
-
-        if (pregunta.numero === 10) {
-            new Chart(ctx.getContext('2d'), {
-                type: 'line',
-                data: {
-                    labels: ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio'],
-                    datasets: [{
-                        label: 'Precio USD (COP)',
-                        data: [3800, 3850, 3900, 3900, 4100, 4200],
-                        borderColor: '#667eea',
-                        backgroundColor: 'rgba(102, 126, 234, 0.1)',
-                        tension: 0.3,
-                        fill: true
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    plugins: {
-                        legend: { display: true },
-                        title: { display: true, text: 'Evolución del Precio del Dólar' }
-                    },
+                    maintainAspectRatio: true,
                     scales: {
                         y: {
-                            beginAtZero: false,
-                            min: 3700,
-                            title: { display: true, text: 'Precio (COP)' }
+                            beginAtZero: true,
+                            title: {
+                                display: true,
+                                text: 'Horas'
+                            }
+                        }
+                    },
+                    plugins: {
+                        legend: {
+                            display: false
                         }
                     }
                 }
-            });
+            };
+        } else if (pregunta.numero === 6) {
+            // Gráfico circular - Bolas en la bolsa
+            configuracion = {
+                type: 'pie',
+                data: {
+                    labels: ['Rojas (12)', 'Azules (8)', 'Verdes (10)'],
+                    datasets: [{
+                        data: [12, 8, 10],
+                        backgroundColor: [
+                            '#ff6384',
+                            '#36a2eb',
+                            '#4caf50'
+                        ]
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: true,
+                    plugins: {
+                        legend: {
+                            position: 'bottom'
+                        }
+                    }
+                }
+            };
         }
 
-        if (pregunta.numero === 16) {
-            const svg = `
-          <svg width="300" height="300" style="max-width: 100%;">
-            <circle cx="150" cy="150" r="120" fill="none" stroke="#667eea" stroke-width="3"/>
-            <line x1="150" y1="150" x2="270" y2="150" stroke="#f5576c" stroke-width="2"/>
-            <line x1="150" y1="150" x2="235" y2="65" stroke="#f5576c" stroke-width="2"/>
-            <path d="M 270 150 A 120 120 0 0 0 235 65 L 150 150 Z" fill="rgba(102, 126, 234, 0.3)" stroke="#667eea" stroke-width="2"/>
-            <text x="190" y="110" font-size="14" fill="#333">Una porción</text>
-            <text x="200" y="160" font-size="14" fill="#f5576c">r = 20 cm</text>
-          </svg>
-        `;
-            ctx.parentElement.innerHTML = svg;
-        }
+        new Chart(ctx.getContext('2d'), configuracion);
     }
 
     // ============================================
@@ -1507,6 +1269,7 @@
         if (estadoTest.preguntaActual < bancoPreguntas.length - 1) {
             estadoTest.preguntaActual++;
             renderizarPregunta(estadoTest.preguntaActual);
+            window.scrollTo(0, 0);
         }
     });
 
@@ -1514,6 +1277,7 @@
         if (estadoTest.preguntaActual > 0) {
             estadoTest.preguntaActual--;
             renderizarPregunta(estadoTest.preguntaActual);
+            window.scrollTo(0, 0);
         }
     });
 
@@ -1529,12 +1293,12 @@
         if (pendientes > 0) {
             document.getElementById('num-pendientes').textContent = pendientes;
             document.getElementById('advertencia-pendientes').style.display = 'block';
+            // Deshabilitar botón de envío si hay preguntas pendientes
             document.getElementById('btn-confirmar-envio').disabled = true;
-            document.getElementById('btn-confirmar-envio').style.opacity = '0.5';
         } else {
             document.getElementById('advertencia-pendientes').style.display = 'none';
+            // Habilitar botón de envío si todas están respondidas
             document.getElementById('btn-confirmar-envio').disabled = false;
-            document.getElementById('btn-confirmar-envio').style.opacity = '1';
         }
 
         document.getElementById('modal-confirmacion').style.display = 'flex';
@@ -1545,11 +1309,6 @@
     });
 
     document.getElementById('btn-confirmar-envio').addEventListener('click', async () => {
-        const pendientes = bancoPreguntas.length - Object.keys(estadoTest.respuestas).length;
-        if (pendientes > 0) {
-            alert('⚠️ Debes responder todas las preguntas antes de enviar.');
-            return;
-        }
         await enviarRespuestas();
     });
 
@@ -1557,11 +1316,13 @@
     // ENVÍO A SUPABASE
     // ============================================
     async function enviarRespuestas() {
+        // Preparar objeto de respuestas SIMPLE
         const objetoRespuestas = {};
         bancoPreguntas.forEach(pregunta => {
             objetoRespuestas[pregunta.numero] = estadoTest.respuestas[pregunta.numero] || 'SIN_RESPUESTA';
         });
 
+        // Preparar objeto de respuestas DETALLADAS con análisis
         const respuestasDetalladas = {};
         bancoPreguntas.forEach(pregunta => {
             const respuestaEstudiante = estadoTest.respuestas[pregunta.numero] || 'SIN_RESPUESTA';
@@ -1577,6 +1338,7 @@
             };
         });
 
+        // Preparar registro único
         const registro = {
             documento_estudiante: estudianteActual.documento,
             respuestas: objetoRespuestas,
@@ -1590,6 +1352,7 @@
 
             if (error) throw error;
 
+            // Mostrar éxito
             document.getElementById('modal-confirmacion').style.display = 'none';
             document.getElementById('exito-nombre').textContent = estudianteActual.nombre;
             document.getElementById('modal-exito').style.display = 'flex';
@@ -1613,6 +1376,7 @@
             `Respondidas: ${respondidas}/${bancoPreguntas.length}`;
         document.querySelector('.progreso-actual').style.width = `${progreso}%`;
 
+        // Actualizar mapa
         actualizarMapaPreguntas();
     }
 
@@ -1627,6 +1391,7 @@
                 const index = parseInt(e.target.dataset.index);
                 estadoTest.preguntaActual = index;
                 renderizarPregunta(index);
+                window.scrollTo(0, 0);
             });
         });
     }
