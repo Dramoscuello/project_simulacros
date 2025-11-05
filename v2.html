@@ -1,0 +1,1682 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Simulacro ICFES - Matemáticas</title>
+
+    <!-- Chart.js para gráficos -->
+    <script src="./chart.umd.min.js"></script>
+
+    <!-- Supabase JS Client -->
+    <script src="./supabase-js@2"></script>
+
+    <style>
+        /* ============================================ */
+        /* ESTILOS PROFESIONALES TIPO ICFES */
+        /* ============================================ */
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 1rem;
+        }
+
+        /* ============================================ */
+        /* MODAL OVERLAY */
+        /* ============================================ */
+
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+            animation: fadeIn 0.3s ease;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        .modal-contenido {
+            background: white;
+            padding: 2.5rem;
+            border-radius: 12px;
+            max-width: 450px;
+            width: 90%;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            animation: slideUp 0.4s ease;
+        }
+
+        @keyframes slideUp {
+            from { transform: translateY(50px); opacity: 0; }
+            to { transform: translateY(0); opacity: 1; }
+        }
+
+        .modal-contenido h2 {
+            color: #333;
+            margin-bottom: 1rem;
+            font-size: 1.5rem;
+        }
+
+        .modal-contenido p {
+            color: #666;
+            margin-bottom: 1.5rem;
+            line-height: 1.6;
+        }
+
+        /* ============================================ */
+        /* FORMULARIOS */
+        /* ============================================ */
+
+        .form-group {
+            margin-bottom: 1.5rem;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 0.5rem;
+            color: #333;
+            font-weight: 600;
+        }
+
+        .form-group input {
+            width: 100%;
+            padding: 0.75rem;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 1rem;
+            transition: border-color 0.3s;
+        }
+
+        .form-group input:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        /* ============================================ */
+        /* BOTONES */
+        /* ============================================ */
+
+        .btn {
+            padding: 0.75rem 1.5rem;
+            border: none;
+            border-radius: 8px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            text-align: center;
+        }
+
+        .btn-primario {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            width: 100%;
+        }
+
+        .btn-primario:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        }
+
+        .btn-primario:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .btn-secundario {
+            background: #f5f5f5;
+            color: #333;
+        }
+
+        .btn-secundario:hover {
+            background: #e0e0e0;
+        }
+
+        .btn-finalizar {
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+            color: white;
+        }
+
+        /* ============================================ */
+        /* MENSAJES */
+        /* ============================================ */
+
+        .mensaje-error {
+            background: #ffebee;
+            color: #c62828;
+            padding: 1rem;
+            border-radius: 8px;
+            border-left: 4px solid #c62828;
+            margin-top: 1rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .mensaje-loading {
+            background: #e3f2fd;
+            color: #1565c0;
+            padding: 1rem;
+            border-radius: 8px;
+            border-left: 4px solid #1565c0;
+            margin-top: 1rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        /* ============================================ */
+        /* CONTENEDOR PRINCIPAL DEL TEST */
+        /* ============================================ */
+
+        .contenedor-test {
+            background: white;
+            width: 95%;
+            max-width: 1200px;
+            min-height: 90vh;
+            border-radius: 12px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            overflow: hidden;
+            display: none;
+        }
+
+        .header-test {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 1.5rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 1rem;
+        }
+
+        .header-test h1 {
+            font-size: 1.5rem;
+        }
+
+        .info-estudiante {
+            display: flex;
+            gap: 2rem;
+            flex-wrap: wrap;
+        }
+
+        .info-estudiante span {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        /* ============================================ */
+        /* INSTRUCCIONES */
+        /* ============================================ */
+
+        .contenedor-instrucciones {
+            background: white;
+            width: 95%;
+            max-width: 900px;
+            padding: 3rem;
+            border-radius: 12px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            display: none;
+        }
+
+        .contenedor-instrucciones h1 {
+            color: #667eea;
+            margin-bottom: 0.5rem;
+        }
+
+        .contenedor-instrucciones h2 {
+            color: #333;
+            margin-bottom: 1.5rem;
+        }
+
+        .instrucciones-contenido {
+            color: #555;
+            line-height: 1.8;
+            margin-bottom: 2rem;
+        }
+
+        .instrucciones-contenido ul {
+            list-style: none;
+            padding-left: 0;
+        }
+
+        .instrucciones-contenido li {
+            padding: 0.5rem 0;
+            padding-left: 1.5rem;
+            position: relative;
+        }
+
+        .instrucciones-contenido li:before {
+            content: "✓";
+            position: absolute;
+            left: 0;
+            color: #667eea;
+            font-weight: bold;
+        }
+
+        .competencias {
+            background: #f5f5f5;
+            padding: 1.5rem;
+            border-radius: 8px;
+            margin-top: 1.5rem;
+        }
+
+        .competencias h3 {
+            color: #333;
+            margin-bottom: 1rem;
+        }
+
+        /* ============================================ */
+        /* BARRA DE PROGRESO */
+        /* ============================================ */
+
+        .progreso {
+            padding: 1.5rem;
+            background: #f9f9f9;
+            border-bottom: 1px solid #e0e0e0;
+        }
+
+        .progreso-info {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 0.75rem;
+            font-weight: 600;
+            color: #555;
+        }
+
+        .barra-progreso {
+            width: 100%;
+            height: 8px;
+            background: #e0e0e0;
+            border-radius: 10px;
+            overflow: hidden;
+        }
+
+        .progreso-actual {
+            height: 100%;
+            background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
+            transition: width 0.3s ease;
+            border-radius: 10px;
+        }
+
+        /* ============================================ */
+        /* PREGUNTA */
+        /* ============================================ */
+
+        .pregunta-contenedor {
+            padding: 2rem;
+            max-width: 900px;
+            margin: 0 auto;
+        }
+
+        .pregunta-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1.5rem;
+            flex-wrap: wrap;
+            gap: 1rem;
+        }
+
+        .numero-pregunta {
+            font-size: 1.25rem;
+            font-weight: bold;
+            color: #667eea;
+        }
+
+        .etiqueta-competencia {
+            background: #e8eaf6;
+            color: #667eea;
+            padding: 0.4rem 1rem;
+            border-radius: 20px;
+            font-size: 0.85rem;
+            font-weight: 600;
+        }
+
+        .contexto {
+            background: #f5f5f5;
+            padding: 1.5rem;
+            border-radius: 8px;
+            margin-bottom: 1.5rem;
+            line-height: 1.8;
+            color: #333;
+        }
+
+        .contenedor-grafico {
+            margin: 1.5rem 0;
+            padding: 1rem;
+            background: #fafafa;
+            border-radius: 8px;
+            border: 1px solid #e0e0e0;
+        }
+
+        .contenedor-grafico canvas {
+            max-height: 400px;
+        }
+
+        .grafico-geometrico {
+            display: block;
+            margin: 0 auto;
+        }
+
+        .pregunta-texto {
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: #333;
+            margin: 1.5rem 0;
+            line-height: 1.6;
+        }
+
+        /* ============================================ */
+        /* OPCIONES DE RESPUESTA */
+        /* ============================================ */
+
+        .opciones {
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+        }
+
+        .opcion {
+            display: flex;
+            align-items: flex-start;
+            padding: 1rem 1.25rem;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s;
+            background: white;
+        }
+
+        .opcion:hover {
+            border-color: #667eea;
+            background: #f5f7ff;
+        }
+
+        .opcion.seleccionada {
+            border-color: #667eea;
+            background: #e8eaf6;
+        }
+
+        .opcion input[type="radio"] {
+            display: none;
+        }
+
+        .letra-opcion {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            background: #f5f5f5;
+            color: #666;
+            font-weight: bold;
+            margin-right: 1rem;
+            flex-shrink: 0;
+            transition: all 0.3s;
+        }
+
+        .opcion.seleccionada .letra-opcion {
+            background: #667eea;
+            color: white;
+        }
+
+        .texto-opcion {
+            flex: 1;
+            line-height: 1.6;
+            color: #333;
+        }
+
+        /* ============================================ */
+        /* NAVEGACIÓN */
+        /* ============================================ */
+
+        .navegacion {
+            padding: 1.5rem 2rem;
+            border-top: 1px solid #e0e0e0;
+            display: flex;
+            justify-content: space-between;
+            gap: 1rem;
+            flex-wrap: wrap;
+        }
+
+        .navegacion button {
+            padding: 0.75rem 2rem;
+        }
+
+        /* ============================================ */
+        /* MAPA DE PREGUNTAS */
+        /* ============================================ */
+
+        .mapa-preguntas {
+            padding: 1.5rem 2rem;
+            background: #fafafa;
+            border-top: 1px solid #e0e0e0;
+        }
+
+        .mapa-preguntas h4 {
+            margin-bottom: 1rem;
+            color: #555;
+        }
+
+        .mapa-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(50px, 1fr));
+            gap: 0.5rem;
+            margin-bottom: 1rem;
+        }
+
+        .btn-mapa {
+            width: 50px;
+            height: 50px;
+            border: 2px solid #e0e0e0;
+            background: white;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.3s;
+        }
+
+        .btn-mapa:hover {
+            border-color: #667eea;
+            transform: scale(1.05);
+        }
+
+        .btn-mapa.respondida {
+            background: #4caf50;
+            color: white;
+            border-color: #4caf50;
+        }
+
+        .btn-mapa.actual {
+            background: #667eea;
+            color: white;
+            border-color: #667eea;
+        }
+
+        .leyenda-mapa {
+            display: flex;
+            gap: 2rem;
+            flex-wrap: wrap;
+            font-size: 0.9rem;
+            color: #666;
+        }
+
+        .leyenda-mapa span {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .indicador {
+            width: 20px;
+            height: 20px;
+            border-radius: 4px;
+            border: 2px solid #e0e0e0;
+        }
+
+        .indicador.respondida {
+            background: #4caf50;
+            border-color: #4caf50;
+        }
+
+        .indicador.pendiente {
+            background: white;
+        }
+
+        /* ============================================ */
+        /* MODAL DE ÉXITO */
+        /* ============================================ */
+
+        .exito-icono {
+            font-size: 4rem;
+            text-align: center;
+            margin-bottom: 1rem;
+        }
+
+        .modal-acciones {
+            display: flex;
+            gap: 1rem;
+            margin-top: 1.5rem;
+        }
+
+        .modal-acciones button {
+            flex: 1;
+        }
+
+        .resumen-respuestas {
+            background: #f5f5f5;
+            padding: 1rem;
+            border-radius: 8px;
+            margin: 1rem 0;
+        }
+
+        .resumen-respuestas p {
+            margin: 0.5rem 0;
+        }
+
+        /* ============================================ */
+        /* TABLAS */
+        /* ============================================ */
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 1rem 0;
+        }
+
+        th {
+            border: 1px solid #ddd;
+            padding: 12px;
+            background: #667eea;
+            color: white;
+            font-weight: 600;
+            text-align: center;
+        }
+
+        td {
+            border: 1px solid #ddd;
+            padding: 12px;
+            text-align: center;
+        }
+
+        /* ============================================ */
+        /* RESPONSIVE */
+        /* ============================================ */
+
+        @media (max-width: 768px) {
+            .header-test {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+
+            .mapa-grid {
+                grid-template-columns: repeat(auto-fill, minmax(45px, 1fr));
+            }
+
+            .navegacion {
+                flex-direction: column;
+            }
+
+            .navegacion button {
+                width: 100%;
+            }
+        }
+    </style>
+</head>
+<body>
+
+<!-- ============================================ -->
+<!-- MODAL DE AUTENTICACIÓN -->
+<!-- ============================================ -->
+<div id="modal-autenticacion" class="modal-overlay">
+    <div class="modal-contenido">
+        <h2>🎓 Simulacro ICFES - Matemáticas</h2>
+        <p>Ingresa tu número de documento para acceder al test</p>
+
+        <form id="form-autenticacion">
+            <div class="form-group">
+                <label for="documento">Número de Documento</label>
+                <input
+                        type="text"
+                        id="documento"
+                        placeholder="Ej: 1234567890"
+                        required
+                        pattern="[0-9]+"
+                        title="Solo números"
+                        maxlength="15"
+                >
+            </div>
+            <button type="submit" class="btn btn-primario">Ingresar</button>
+        </form>
+
+        <div id="error-autenticacion" class="mensaje-error" style="display:none;">
+            <span>❌</span>
+            <span>Documento no encontrado. Contacta al administrador.</span>
+        </div>
+
+        <div id="loading-autenticacion" class="mensaje-loading" style="display:none;">
+            <span>🔄</span>
+            <span>Verificando documento...</span>
+        </div>
+    </div>
+</div>
+
+<!-- ============================================ -->
+<!-- PANTALLA DE INSTRUCCIONES -->
+<!-- ============================================ -->
+<div id="instrucciones" class="contenedor-instrucciones">
+    <h1>¡Bienvenido/a, <span id="nombre-estudiante"></span>!</h1>
+    <h2>Instrucciones del Simulacro de Matemáticas</h2>
+
+    <div class="instrucciones-contenido">
+        <p><strong>Esta prueba contiene 20 preguntas de selección múltiple con única respuesta.</strong></p>
+
+        <ul>
+            <li>Lee cuidadosamente cada pregunta y su contexto</li>
+            <li>Algunas preguntas incluyen gráficos, tablas o diagramas</li>
+            <li>Selecciona UNA opción de respuesta (A, B, C o D)</li>
+            <li>Puedes navegar entre preguntas usando los botones</li>
+            <li>El mapa inferior te permite ir directamente a cualquier pregunta</li>
+            <li>Asegúrate de responder todas las preguntas antes de finalizar</li>
+            <li><strong>Una vez envíes tus respuestas, no podrás modificarlas</strong></li>
+        </ul>
+
+        <div class="competencias">
+            <h3>📊 Competencias evaluadas:</h3>
+            <ul>
+                <li><strong>Interpretación y representación:</strong> Interpretación de información matemática en diversos formatos</li>
+                <li><strong>Formulación y ejecución:</strong> Aplicación de conceptos matemáticos a situaciones problema</li>
+                <li><strong>Argumentación:</strong> Justificación de procedimientos y validación de soluciones</li>
+            </ul>
+        </div>
+    </div>
+
+    <button id="btn-comenzar" class="btn btn-primario">🚀 Comenzar Simulacro</button>
+</div>
+
+<!-- ============================================ -->
+<!-- CONTENEDOR PRINCIPAL DEL TEST -->
+<!-- ============================================ -->
+<div id="contenedor-test" class="contenedor-test">
+
+    <!-- Header -->
+    <div class="header-test">
+        <h1>📐 Simulacro ICFES - Matemáticas</h1>
+        <div class="info-estudiante">
+            <span>👤 <strong id="header-nombre"></strong></span>
+            <span>🆔 <strong id="header-documento"></strong></span>
+        </div>
+    </div>
+
+    <!-- Barra de progreso -->
+    <div class="progreso">
+        <div class="progreso-info">
+            <span id="contador-preguntas">Pregunta 1 de 20</span>
+            <span id="contador-respondidas">Respondidas: 0/20</span>
+        </div>
+        <div class="barra-progreso">
+            <div class="progreso-actual" style="width: 0%;"></div>
+        </div>
+    </div>
+
+    <!-- Pregunta actual -->
+    <div id="pregunta-actual" class="pregunta-contenedor">
+        <!-- Se renderiza dinámicamente con JavaScript -->
+    </div>
+
+    <!-- Navegación -->
+    <div class="navegacion">
+        <button id="btn-anterior" class="btn btn-secundario" disabled>← Anterior</button>
+        <button id="btn-siguiente" class="btn btn-primario">Siguiente →</button>
+        <button id="btn-finalizar" class="btn btn-finalizar" style="display:none;">✓ Finalizar Test</button>
+    </div>
+
+    <!-- Mapa de preguntas -->
+    <div class="mapa-preguntas">
+        <h4>Navegación rápida:</h4>
+        <div id="mapa-botones" class="mapa-grid">
+            <!-- Botones 1-20 generados dinámicamente -->
+        </div>
+        <div class="leyenda-mapa">
+            <span><span class="indicador respondida"></span> Respondida</span>
+            <span><span class="indicador pendiente"></span> Pendiente</span>
+        </div>
+    </div>
+
+</div>
+
+<!-- ============================================ -->
+<!-- MODAL DE CONFIRMACIÓN -->
+<!-- ============================================ -->
+<div id="modal-confirmacion" class="modal-overlay" style="display:none;">
+    <div class="modal-contenido">
+        <h2>⚠️ ¿Finalizar el simulacro?</h2>
+
+        <div class="resumen-respuestas">
+            <p>Has respondido <strong id="total-respondidas">0</strong> de <strong>20</strong> preguntas.</p>
+            <p id="advertencia-pendientes" style="display:none; color: #d32f2f; font-weight: 600;">
+                ⚠️ Tienes <strong id="num-pendientes"></strong> preguntas sin responder. <strong>Debes responder TODAS las preguntas antes de enviar.</strong>
+            </p>
+        </div>
+
+        <p style="margin-top: 1rem;">Una vez envíes, no podrás modificar tus respuestas.</p>
+
+        <div class="modal-acciones">
+            <button id="btn-continuar" class="btn btn-secundario">← Revisar respuestas</button>
+            <button id="btn-confirmar-envio" class="btn btn-finalizar">Sí, enviar respuestas →</button>
+        </div>
+    </div>
+</div>
+
+<!-- ============================================ -->
+<!-- MODAL DE ÉXITO -->
+<!-- ============================================ -->
+<div id="modal-exito" class="modal-overlay" style="display:none;">
+    <div class="modal-contenido">
+        <div class="exito-icono">✅</div>
+        <h2>¡Respuestas enviadas correctamente!</h2>
+        <p>Gracias por completar el simulacro, <strong id="exito-nombre"></strong>.</p>
+        <p>Tus resultados serán procesados y estarán disponibles próximamente.</p>
+        <button class="btn btn-primario" onclick="location.reload()">Cerrar</button>
+    </div>
+</div>
+
+<script>
+    // ============================================
+    // ⚙️ CONFIGURACIÓN DE SUPABASE
+    // ============================================
+    // 🔧 IMPORTANTE: Configura aquí tus credenciales de Supabase
+    const SUPABASE_URL = 'https://ikutsomtkzccnuvdvpen.supabase.co';  // Ejemplo: 'https://abcdefgh.supabase.co'
+    const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImlrdXRzb210a3pjY251dmR2cGVuIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjE5OTUxODMsImV4cCI6MjA3NzU3MTE4M30.G95k132Zvf7bDlLHrLqGxjUzhT0Vmr70ZWsbsPF1PfY';  // Ejemplo: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...'
+
+
+    // Inicializar cliente de Supabase
+    const { createClient } = supabase;
+    const supabaseClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+    // ============================================
+    // VARIABLES GLOBALES
+    // ============================================
+    let estudianteActual = {
+        documento: null,
+        nombre: ''
+    };
+
+    let estadoTest = {
+        preguntaActual: 0,
+        respuestas: {},
+        horaInicio: null
+    };
+
+    // ============================================
+    // BANCO DE PREGUNTAS (20 preguntas)
+    // Distribución: 40% fácil (8), 50% medio (10), 10% difícil (2)
+    // 8 preguntas con gráficos (40%)
+    // ============================================
+    const bancoPreguntas = [
+        // PREGUNTA 1 - FÁCIL - Interpretación y representación - Numérico-variacional
+        {
+            numero: 1,
+            competencia: "Interpretación y representación",
+            componente: "Numérico-variacional",
+            tema: "Porcentajes y proporciones",
+            dificultad: "facil",
+            contexto: "Una tienda de electrodomésticos ofrece un descuento del 25% en todos sus productos por temporada de rebajas. María desea comprar una lavadora que originalmente cuesta $800.000.",
+            tiene_grafico: false,
+            pregunta: "¿Cuánto dinero pagará María por la lavadora después del descuento?",
+            opciones: {
+                A: "$200.000",
+                B: "$600.000",
+                C: "$625.000",
+                D: "$775.000"
+            },
+            respuesta_correcta: "B",
+            justificacion: "El descuento del 25% sobre $800.000 es $200.000, por lo tanto María pagará $800.000 - $200.000 = $600.000"
+        },
+
+        // PREGUNTA 2 - FÁCIL - Formulación y ejecución - Geométrico-métrico
+        {
+            numero: 2,
+            competencia: "Formulación y ejecución",
+            componente: "Geométrico-métrico",
+            tema: "Perímetro y área de figuras planas",
+            dificultad: "facil",
+            contexto: "Un agricultor desea cercar un terreno rectangular para sembrar hortalizas. El terreno mide 15 metros de largo y 8 metros de ancho.",
+            tiene_grafico: false,
+            pregunta: "¿Cuántos metros de cerca necesita el agricultor para rodear completamente el terreno?",
+            opciones: {
+                A: "23 metros",
+                B: "46 metros",
+                C: "120 metros",
+                D: "240 metros"
+            },
+            respuesta_correcta: "B",
+            justificacion: "El perímetro de un rectángulo es 2(largo + ancho) = 2(15 + 8) = 2(23) = 46 metros"
+        },
+
+        // PREGUNTA 3 - MEDIO - Interpretación y representación - Aleatorio CON GRÁFICO
+        {
+            numero: 3,
+            competencia: "Interpretación y representación",
+            componente: "Aleatorio",
+            tema: "Interpretación de gráficos estadísticos",
+            dificultad: "medio",
+            contexto: "Una empresa de transporte registró la cantidad de pasajeros transportados durante una semana. Los datos se muestran en el siguiente gráfico de barras.",
+            tiene_grafico: true,
+            tipo_grafico: "barras",
+            pregunta: "¿En qué día se transportó la mayor cantidad de pasajeros y cuántos fueron?",
+            opciones: {
+                A: "Lunes - 450 pasajeros",
+                B: "Miércoles - 520 pasajeros",
+                C: "Viernes - 680 pasajeros",
+                D: "Sábado - 590 pasajeros"
+            },
+            respuesta_correcta: "C",
+            justificacion: "Observando el gráfico, el viernes tiene la barra más alta con 680 pasajeros"
+        },
+
+        // PREGUNTA 4 - FÁCIL - Formulación y ejecución - Numérico-variacional
+        {
+            numero: 4,
+            competencia: "Formulación y ejecución",
+            componente: "Numérico-variacional",
+            tema: "Ecuaciones lineales",
+            dificultad: "facil",
+            contexto: "En una papelería, 3 cuadernos y 2 lapiceros cuestan $15.000. Si cada lapicero cuesta $1.500, ¿cuánto cuesta cada cuaderno?",
+            tiene_grafico: false,
+            pregunta: "¿Cuál es el precio de cada cuaderno?",
+            opciones: {
+                A: "$3.000",
+                B: "$4.000",
+                C: "$4.500",
+                D: "$5.000"
+            },
+            respuesta_correcta: "B",
+            justificacion: "2 lapiceros cuestan 2 × $1.500 = $3.000. Los cuadernos cuestan $15.000 - $3.000 = $12.000. Cada cuaderno cuesta $12.000 ÷ 3 = $4.000"
+        },
+
+        // PREGUNTA 5 - MEDIO - Argumentación - Geométrico-métrico CON GRÁFICO
+        {
+            numero: 5,
+            competencia: "Argumentación",
+            componente: "Geométrico-métrico",
+            tema: "Teorema de Pitágoras",
+            dificultad: "medio",
+            contexto: "En un parque se construye una rampa para personas en silla de ruedas. La rampa forma un triángulo rectángulo con el suelo, donde la base mide 12 metros y la altura vertical es de 5 metros.",
+            tiene_grafico: true,
+            tipo_grafico: "geometrico",
+            pregunta: "¿Cuál es la longitud de la rampa (hipotenusa del triángulo)?",
+            opciones: {
+                A: "11 metros",
+                B: "13 metros",
+                C: "15 metros",
+                D: "17 metros"
+            },
+            respuesta_correcta: "B",
+            justificacion: "Por el teorema de Pitágoras: c² = a² + b² = 12² + 5² = 144 + 25 = 169, por lo tanto c = √169 = 13 metros"
+        },
+
+        // PREGUNTA 6 - MEDIO - Interpretación y representación - Numérico-variacional CON TABLA
+        {
+            numero: 6,
+            competencia: "Interpretación y representación",
+            componente: "Numérico-variacional",
+            tema: "Razones y proporciones",
+            dificultad: "medio",
+            contexto: "Una fábrica de confecciones produce camisas en tres turnos. La siguiente tabla muestra la producción de cada turno durante un día.",
+            tiene_grafico: true,
+            tipo_grafico: "tabla",
+            datos_tabla: {
+                headers: ["Turno", "Producción (unidades)"],
+                rows: [
+                    ["Mañana", "180"],
+                    ["Tarde", "240"],
+                    ["Noche", "150"]
+                ]
+            },
+            pregunta: "¿Qué porcentaje de la producción total corresponde al turno de la tarde?",
+            opciones: {
+                A: "32%",
+                B: "36%",
+                C: "42%",
+                D: "48%"
+            },
+            respuesta_correcta: "C",
+            justificacion: "Producción total = 180 + 240 + 150 = 570 unidades. Porcentaje del turno tarde = (240/570) × 100 ≈ 42%"
+        },
+
+        // PREGUNTA 7 - FÁCIL - Interpretación y representación - Aleatorio
+        {
+            numero: 7,
+            competencia: "Interpretación y representación",
+            componente: "Aleatorio",
+            tema: "Medidas de tendencia central",
+            dificultad: "facil",
+            contexto: "Un estudiante obtuvo las siguientes calificaciones en cinco exámenes de matemáticas: 8, 9, 7, 10 y 8.",
+            tiene_grafico: false,
+            pregunta: "¿Cuál es el promedio de las calificaciones del estudiante?",
+            opciones: {
+                A: "7.5",
+                B: "8.0",
+                C: "8.4",
+                D: "9.0"
+            },
+            respuesta_correcta: "C",
+            justificacion: "Promedio = (8 + 9 + 7 + 10 + 8) / 5 = 42 / 5 = 8.4"
+        },
+
+        // PREGUNTA 8 - MEDIO - Formulación y ejecución - Numérico-variacional
+        {
+            numero: 8,
+            competencia: "Formulación y ejecución",
+            componente: "Numérico-variacional",
+            tema: "Sistemas de ecuaciones",
+            dificultad: "medio",
+            contexto: "En una cafetería, dos cafés y tres jugos cuestan $22.000, mientras que tres cafés y dos jugos cuestan $23.000.",
+            tiene_grafico: false,
+            pregunta: "¿Cuál es el precio de un café?",
+            opciones: {
+                A: "$3.000",
+                B: "$4.000",
+                C: "$5.000",
+                D: "$6.000"
+            },
+            respuesta_correcta: "C",
+            justificacion: "Sistema: 2c + 3j = 22000 y 3c + 2j = 23000. Multiplicando la primera por 3 y la segunda por 2: 6c + 9j = 66000 y 6c + 4j = 46000. Restando: 5j = 20000, j = 4000. Sustituyendo: 2c + 12000 = 22000, c = 5000. Verificando: 3(5000) + 2(4000) = 23000 ✓. Por lo tanto, un café cuesta $5.000"
+        },
+
+        // PREGUNTA 9 - FÁCIL - Formulación y ejecución - Geométrico-métrico
+        {
+            numero: 9,
+            competencia: "Formulación y ejecución",
+            componente: "Geométrico-métrico",
+            tema: "Área de triángulos",
+            dificultad: "facil",
+            contexto: "Un jardín tiene forma triangular con una base de 10 metros y una altura de 6 metros.",
+            tiene_grafico: false,
+            pregunta: "¿Cuál es el área del jardín en metros cuadrados?",
+            opciones: {
+                A: "16 m²",
+                B: "30 m²",
+                C: "40 m²",
+                D: "60 m²"
+            },
+            respuesta_correcta: "B",
+            justificacion: "El área de un triángulo es (base × altura) / 2 = (10 × 6) / 2 = 30 m²"
+        },
+
+        // PREGUNTA 10 - MEDIO - Argumentación - Aleatorio CON GRÁFICO
+        {
+            numero: 10,
+            competencia: "Argumentación",
+            componente: "Aleatorio",
+            tema: "Probabilidad",
+            dificultad: "medio",
+            contexto: "En una urna hay 15 bolas: 6 rojas, 5 azules y 4 verdes. Se extrae una bola al azar.",
+            tiene_grafico: true,
+            tipo_grafico: "circular",
+            pregunta: "¿Cuál es la probabilidad de sacar una bola que NO sea roja?",
+            opciones: {
+                A: "2/5",
+                B: "3/5",
+                C: "2/3",
+                D: "4/5"
+            },
+            respuesta_correcta: "B",
+            justificacion: "Bolas no rojas = 5 azules + 4 verdes = 9 bolas. Probabilidad = 9/15 = 3/5"
+        },
+
+        // PREGUNTA 11 - MEDIO - Interpretación y representación - Geométrico-métrico
+        {
+            numero: 11,
+            competencia: "Interpretación y representación",
+            componente: "Geométrico-métrico",
+            tema: "Volumen de cilindros",
+            dificultad: "medio",
+            contexto: "Un tanque de agua tiene forma cilíndrica con un radio de 2 metros y una altura de 5 metros. (Usar π ≈ 3.14)",
+            tiene_grafico: false,
+            pregunta: "¿Cuál es aproximadamente el volumen del tanque en metros cúbicos?",
+            opciones: {
+                A: "31.4 m³",
+                B: "47.1 m³",
+                C: "62.8 m³",
+                D: "78.5 m³"
+            },
+            respuesta_correcta: "C",
+            justificacion: "Volumen = π × r² × h = 3.14 × 2² × 5 = 3.14 × 4 × 5 = 62.8 m³"
+        },
+
+        // PREGUNTA 12 - FÁCIL - Argumentación - Numérico-variacional
+        {
+            numero: 12,
+            competencia: "Argumentación",
+            componente: "Numérico-variacional",
+            tema: "Orden de operaciones",
+            dificultad: "facil",
+            contexto: "Pedro afirma que el resultado de la expresión 5 + 3 × 2 es 16, mientras que Ana dice que es 11.",
+            tiene_grafico: false,
+            pregunta: "¿Quién tiene la razón y por qué?",
+            opciones: {
+                A: "Pedro, porque se debe resolver de izquierda a derecha",
+                B: "Pedro, porque las sumas se realizan primero",
+                C: "Ana, porque las multiplicaciones se realizan antes que las sumas",
+                D: "Ana, porque se debe empezar por el número más grande"
+            },
+            respuesta_correcta: "C",
+            justificacion: "Según el orden de operaciones, las multiplicaciones se realizan antes que las sumas: 3 × 2 = 6, luego 5 + 6 = 11"
+        },
+
+        // PREGUNTA 13 - DIFÍCIL - Formulación y ejecución - Numérico-variacional CON GRÁFICO
+        {
+            numero: 13,
+            competencia: "Formulación y ejecución",
+            componente: "Numérico-variacional",
+            tema: "Funciones lineales",
+            dificultad: "dificil",
+            contexto: "Una empresa de telefonía celular cobra una tarifa fija mensual de $25.000 más $300 por cada minuto consumido. La siguiente gráfica muestra el costo total en función de los minutos consumidos.",
+            tiene_grafico: true,
+            tipo_grafico: "lineas",
+            pregunta: "¿Cuál es la ecuación que representa el costo total (y) en función de los minutos consumidos (x)?",
+            opciones: {
+                A: "y = 300x",
+                B: "y = 25000x + 300",
+                C: "y = 300x + 25000",
+                D: "y = 25000x - 300"
+            },
+            respuesta_correcta: "C",
+            justificacion: "El costo total es la tarifa fija más el costo variable: y = 300x + 25000, donde 300 es la pendiente (costo por minuto) y 25000 es el intercepto (tarifa fija)"
+        },
+
+        // PREGUNTA 14 - MEDIO - Argumentación - Aleatorio CON TABLA
+        {
+            numero: 14,
+            competencia: "Argumentación",
+            componente: "Aleatorio",
+            tema: "Interpretación de datos estadísticos",
+            dificultad: "medio",
+            contexto: "Una empresa registró las ventas mensuales durante el primer semestre del año. Los datos se muestran en la siguiente tabla.",
+            tiene_grafico: true,
+            tipo_grafico: "tabla",
+            datos_tabla: {
+                headers: ["Mes", "Ventas (millones)"],
+                rows: [
+                    ["Enero", "5.2"],
+                    ["Febrero", "6.1"],
+                    ["Marzo", "5.8"],
+                    ["Abril", "7.3"],
+                    ["Mayo", "6.9"],
+                    ["Junio", "8.1"]
+                ]
+            },
+            pregunta: "¿Cuál afirmación es correcta respecto a las ventas?",
+            opciones: {
+                A: "Las ventas disminuyeron constantemente durante el semestre",
+                B: "Las ventas aumentaron constantemente durante el semestre",
+                C: "Las ventas tuvieron una tendencia general creciente con algunas fluctuaciones",
+                D: "Las ventas se mantuvieron estables sin cambios significativos"
+            },
+            respuesta_correcta: "C",
+            justificacion: "Aunque hubo disminución de febrero a marzo, la tendencia general es creciente (de 5.2 en enero a 8.1 en junio)"
+        },
+
+        // PREGUNTA 15 - FÁCIL - Interpretación y representación - Geométrico-métrico
+        {
+            numero: 15,
+            competencia: "Interpretación y representación",
+            componente: "Geométrico-métrico",
+            tema: "Semejanza de triángulos",
+            dificultad: "facil",
+            contexto: "Dos triángulos son semejantes cuando tienen la misma forma pero diferente tamaño. Si un triángulo tiene lados de 3, 4 y 5 cm, y otro triángulo semejante tiene su lado menor de 6 cm.",
+            tiene_grafico: false,
+            pregunta: "¿Cuánto mide el lado mayor del segundo triángulo?",
+            opciones: {
+                A: "8 cm",
+                B: "10 cm",
+                C: "12 cm",
+                D: "15 cm"
+            },
+            respuesta_correcta: "B",
+            justificacion: "La razón de semejanza es 6/3 = 2. El lado mayor del primer triángulo es 5 cm, por lo tanto el lado mayor del segundo es 5 × 2 = 10 cm"
+        },
+
+        // PREGUNTA 16 - MEDIO - Formulación y ejecución - Aleatorio
+        {
+            numero: 16,
+            competencia: "Formulación y ejecución",
+            componente: "Aleatorio",
+            tema: "Combinatoria",
+            dificultad: "medio",
+            contexto: "En un restaurante ofrecen un menú ejecutivo donde el cliente puede elegir 1 entrada (3 opciones), 1 plato principal (4 opciones) y 1 postre (2 opciones).",
+            tiene_grafico: false,
+            pregunta: "¿Cuántas combinaciones diferentes de menú ejecutivo puede formar un cliente?",
+            opciones: {
+                A: "9 combinaciones",
+                B: "12 combinaciones",
+                C: "24 combinaciones",
+                D: "36 combinaciones"
+            },
+            respuesta_correcta: "C",
+            justificacion: "Por el principio de multiplicación: 3 × 4 × 2 = 24 combinaciones diferentes"
+        },
+
+        // PREGUNTA 17 - MEDIO - Argumentación - Geométrico-métrico CON GRÁFICO
+        {
+            numero: 17,
+            competencia: "Argumentación",
+            componente: "Geométrico-métrico",
+            tema: "Ángulos en polígonos",
+            dificultad: "medio",
+            contexto: "En un cuadrilátero, tres de sus ángulos internos miden 85°, 95° y 110°.",
+            tiene_grafico: true,
+            tipo_grafico: "geometrico",
+            pregunta: "¿Cuál es la medida del cuarto ángulo?",
+            opciones: {
+                A: "60°",
+                B: "70°",
+                C: "80°",
+                D: "90°"
+            },
+            respuesta_correcta: "B",
+            justificacion: "La suma de los ángulos internos de un cuadrilátero es 360°. Por lo tanto: 85° + 95° + 110° + x = 360°, entonces x = 360° - 290° = 70°"
+        },
+
+        // PREGUNTA 18 - DIFÍCIL - Argumentación - Numérico-variacional
+        {
+            numero: 18,
+            competencia: "Argumentación",
+            componente: "Numérico-variacional",
+            tema: "Progresiones aritméticas",
+            dificultad: "dificil",
+            contexto: "Una empresa planea aumentar su producción mensual siguiendo una progresión aritmética. En enero produjo 1.200 unidades y en febrero 1.350 unidades.",
+            tiene_grafico: false,
+            pregunta: "Si continúa con este patrón, ¿cuántas unidades producirá en junio (sexto mes)?",
+            opciones: {
+                A: "1.800 unidades",
+                B: "1.950 unidades",
+                C: "2.100 unidades",
+                D: "2.250 unidades"
+            },
+            respuesta_correcta: "B",
+            justificacion: "La diferencia común es 1.350 - 1.200 = 150. Fórmula: a_n = a_1 + (n-1)d. Para junio (n=6): a_6 = 1.200 + (6-1)×150 = 1.200 + 750 = 1.950 unidades"
+        },
+
+        // PREGUNTA 19 - FÁCIL - Formulación y ejecución - Aleatorio
+        {
+            numero: 19,
+            competencia: "Formulación y ejecución",
+            componente: "Aleatorio",
+            tema: "Regla de tres simple",
+            dificultad: "facil",
+            contexto: "Si 5 obreros construyen un muro en 12 días trabajando al mismo ritmo.",
+            tiene_grafico: false,
+            pregunta: "¿Cuántos días tardarán 3 obreros en construir el mismo muro?",
+            opciones: {
+                A: "7 días",
+                B: "15 días",
+                C: "20 días",
+                D: "36 días"
+            },
+            respuesta_correcta: "C",
+            justificacion: "Es una relación inversamente proporcional: si hay menos obreros, tardarán más días. 5 × 12 = 3 × x, entonces x = 60/3 = 20 días"
+        },
+
+        // PREGUNTA 20 - MEDIO - Interpretación y representación - Numérico-variacional
+        {
+            numero: 20,
+            competencia: "Interpretación y representación",
+            componente: "Numérico-variacional",
+            tema: "Notación científica",
+            dificultad: "medio",
+            contexto: "La distancia promedio entre la Tierra y el Sol es aproximadamente 150.000.000 kilómetros.",
+            tiene_grafico: false,
+            pregunta: "¿Cómo se expresa esta distancia en notación científica?",
+            opciones: {
+                A: "1.5 × 10⁶ km",
+                B: "15 × 10⁷ km",
+                C: "1.5 × 10⁸ km",
+                D: "1.5 × 10⁹ km"
+            },
+            respuesta_correcta: "C",
+            justificacion: "150.000.000 = 1.5 × 100.000.000 = 1.5 × 10⁸ km"
+        }
+    ];
+
+    // ============================================
+    // AUTENTICACIÓN
+    // ============================================
+    document.getElementById('form-autenticacion').addEventListener('submit', async (e) => {
+        e.preventDefault();
+
+        const documento = parseInt(document.getElementById('documento').value.trim());
+        const errorDiv = document.getElementById('error-autenticacion');
+        const loadingDiv = document.getElementById('loading-autenticacion');
+
+        errorDiv.style.display = 'none';
+        loadingDiv.style.display = 'flex';
+
+        try {
+            const { data, error } = await supabaseClient
+                .from('estudiantes')
+                .select('documento, nombre')
+                .eq('documento', documento)
+                .single();
+
+            loadingDiv.style.display = 'none';
+
+            if (error || !data) {
+                errorDiv.style.display = 'flex';
+                return;
+            }
+
+            estudianteActual.documento = data.documento;
+            estudianteActual.nombre = data.nombre;
+
+            document.getElementById('modal-autenticacion').style.display = 'none';
+            document.getElementById('nombre-estudiante').textContent = estudianteActual.nombre;
+            document.getElementById('instrucciones').style.display = 'flex';
+
+        } catch (error) {
+            console.error('Error al consultar Supabase:', error);
+            loadingDiv.style.display = 'none';
+            errorDiv.innerHTML = '<span>❌</span><span>Error de conexión. Intenta nuevamente.</span>';
+            errorDiv.style.display = 'flex';
+        }
+    });
+
+    // ============================================
+    // INICIAR TEST
+    // ============================================
+    document.getElementById('btn-comenzar').addEventListener('click', () => {
+        estadoTest.horaInicio = new Date();
+
+        document.getElementById('header-nombre').textContent = estudianteActual.nombre;
+        document.getElementById('header-documento').textContent = estudianteActual.documento;
+
+        document.getElementById('instrucciones').style.display = 'none';
+        document.getElementById('contenedor-test').style.display = 'block';
+
+        generarMapaPreguntas();
+        renderizarPregunta(0);
+    });
+
+    // ============================================
+    // RENDERIZAR PREGUNTA
+    // ============================================
+    function renderizarPregunta(index) {
+        const pregunta = bancoPreguntas[index];
+        const contenedor = document.getElementById('pregunta-actual');
+
+        let htmlGrafico = '';
+        if (pregunta.tiene_grafico) {
+            if (pregunta.tipo_grafico === 'tabla') {
+                htmlGrafico = generarTabla(pregunta.datos_tabla);
+            } else {
+                htmlGrafico = `<div class="contenedor-grafico">
+            <canvas id="grafico-pregunta-${pregunta.numero}"></canvas>
+          </div>`;
+            }
+        }
+
+        contenedor.innerHTML = `
+        <div class="pregunta-header">
+          <span class="numero-pregunta">Pregunta ${pregunta.numero}</span>
+          <span class="etiqueta-competencia">${pregunta.competencia}</span>
+        </div>
+
+        <div class="contexto">${pregunta.contexto}</div>
+
+        ${htmlGrafico}
+
+        <div class="pregunta-texto">${pregunta.pregunta}</div>
+
+        <div class="opciones">
+          ${Object.entries(pregunta.opciones).map(([letra, texto]) => `
+            <label class="opcion ${estadoTest.respuestas[pregunta.numero] === letra ? 'seleccionada' : ''}">
+              <input
+                type="radio"
+                name="respuesta-${pregunta.numero}"
+                value="${letra}"
+                ${estadoTest.respuestas[pregunta.numero] === letra ? 'checked' : ''}
+              >
+              <span class="letra-opcion">${letra}</span>
+              <span class="texto-opcion">${texto}</span>
+            </label>
+          `).join('')}
+        </div>
+      `;
+
+        if (pregunta.tiene_grafico && pregunta.tipo_grafico !== 'tabla') {
+            setTimeout(() => renderizarGrafico(pregunta), 100);
+        }
+
+        document.querySelectorAll(`input[name="respuesta-${pregunta.numero}"]`).forEach(input => {
+            input.addEventListener('change', (e) => {
+                estadoTest.respuestas[pregunta.numero] = e.target.value;
+
+                document.querySelectorAll('.opcion').forEach(op => op.classList.remove('seleccionada'));
+                e.target.closest('.opcion').classList.add('seleccionada');
+
+                actualizarEstado();
+            });
+        });
+
+        actualizarNavegacion(index);
+        actualizarEstado();
+    }
+
+    // ============================================
+    // GENERAR TABLA HTML
+    // ============================================
+    function generarTabla(datos) {
+        return `
+        <div class="contenedor-grafico">
+          <table>
+            <thead>
+              <tr>
+                ${datos.headers.map(h => `<th>${h}</th>`).join('')}
+              </tr>
+            </thead>
+            <tbody>
+              ${datos.rows.map(row => `
+                <tr>
+                  ${row.map(cell => `<td>${cell}</td>`).join('')}
+                </tr>
+              `).join('')}
+            </tbody>
+          </table>
+        </div>
+      `;
+    }
+
+    // ============================================
+    // RENDERIZAR GRÁFICOS
+    // ============================================
+    function renderizarGrafico(pregunta) {
+        const canvas = document.getElementById(`grafico-pregunta-${pregunta.numero}`);
+        if (!canvas) return;
+
+        const ctx = canvas.getContext('2d');
+
+        // Configuraciones específicas por pregunta
+        if (pregunta.numero === 3) {
+            // Gráfico de barras - Pasajeros por día
+            new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo'],
+                    datasets: [{
+                        label: 'Pasajeros',
+                        data: [450, 380, 520, 410, 680, 590, 320],
+                        backgroundColor: ['#667eea', '#764ba2', '#667eea', '#764ba2', '#667eea', '#764ba2', '#667eea']
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            title: {
+                                display: true,
+                                text: 'Número de pasajeros'
+                            }
+                        }
+                    }
+                }
+            });
+        } else if (pregunta.numero === 5) {
+            // Gráfico SVG geométrico - Triángulo rectángulo
+            canvas.parentElement.innerHTML = `
+          <div class="contenedor-grafico">
+            <svg width="400" height="300" class="grafico-geometrico">
+              <line x1="50" y1="250" x2="290" y2="250" stroke="#333" stroke-width="3"/>
+              <line x1="50" y1="250" x2="50" y2="100" stroke="#333" stroke-width="3"/>
+              <line x1="50" y1="100" x2="290" y2="250" stroke="#667eea" stroke-width="3"/>
+
+              <text x="160" y="275" font-size="16" fill="#333">12 m</text>
+              <text x="20" y="180" font-size="16" fill="#333">5 m</text>
+              <text x="160" y="160" font-size="16" fill="#667eea" font-weight="bold">Rampa = ?</text>
+
+              <path d="M 60 250 L 60 240 L 50 240" fill="none" stroke="#333" stroke-width="2"/>
+            </svg>
+          </div>
+        `;
+        } else if (pregunta.numero === 10) {
+            // Gráfico circular - Probabilidad bolas
+            new Chart(ctx, {
+                type: 'pie',
+                data: {
+                    labels: ['Rojas', 'Azules', 'Verdes'],
+                    datasets: [{
+                        data: [6, 5, 4],
+                        backgroundColor: ['#ff6384', '#36a2eb', '#4bc0c0']
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'bottom'
+                        }
+                    }
+                }
+            });
+        } else if (pregunta.numero === 13) {
+            // Gráfico de líneas - Costo telefonía
+            new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: ['0', '50', '100', '150', '200'],
+                    datasets: [{
+                        label: 'Costo total ($)',
+                        data: [25000, 40000, 55000, 70000, 85000],
+                        borderColor: '#667eea',
+                        backgroundColor: 'rgba(102, 126, 234, 0.1)',
+                        tension: 0
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        x: {
+                            title: {
+                                display: true,
+                                text: 'Minutos consumidos'
+                            }
+                        },
+                        y: {
+                            beginAtZero: true,
+                            title: {
+                                display: true,
+                                text: 'Costo total ($)'
+                            }
+                        }
+                    }
+                }
+            });
+        } else if (pregunta.numero === 17) {
+            // Gráfico SVG geométrico - Cuadrilátero con ángulos
+            canvas.parentElement.innerHTML = `
+          <div class="contenedor-grafico">
+            <svg width="400" height="300" class="grafico-geometrico">
+              <path d="M 100 50 L 320 80 L 280 230 L 80 200 Z" fill="none" stroke="#333" stroke-width="3"/>
+
+              <text x="110" y="70" font-size="14" fill="#667eea" font-weight="bold">85°</text>
+              <text x="290" y="100" font-size="14" fill="#667eea" font-weight="bold">95°</text>
+              <text x="250" y="210" font-size="14" fill="#667eea" font-weight="bold">110°</text>
+              <text x="80" y="190" font-size="14" fill="#ff6384" font-weight="bold">?</text>
+            </svg>
+          </div>
+        `;
+        }
+    }
+
+    // ============================================
+    // NAVEGACIÓN
+    // ============================================
+    document.getElementById('btn-siguiente').addEventListener('click', () => {
+        if (estadoTest.preguntaActual < bancoPreguntas.length - 1) {
+            estadoTest.preguntaActual++;
+            renderizarPregunta(estadoTest.preguntaActual);
+        }
+    });
+
+    document.getElementById('btn-anterior').addEventListener('click', () => {
+        if (estadoTest.preguntaActual > 0) {
+            estadoTest.preguntaActual--;
+            renderizarPregunta(estadoTest.preguntaActual);
+        }
+    });
+
+    // ============================================
+    // FINALIZAR TEST
+    // ============================================
+    document.getElementById('btn-finalizar').addEventListener('click', () => {
+        const respondidas = Object.keys(estadoTest.respuestas).length;
+        const pendientes = bancoPreguntas.length - respondidas;
+
+        document.getElementById('total-respondidas').textContent = respondidas;
+
+        if (pendientes > 0) {
+            document.getElementById('num-pendientes').textContent = pendientes;
+            document.getElementById('advertencia-pendientes').style.display = 'block';
+            // Deshabilitar botón de envío si faltan respuestas
+            document.getElementById('btn-confirmar-envio').disabled = true;
+            document.getElementById('btn-confirmar-envio').style.opacity = '0.5';
+        } else {
+            document.getElementById('advertencia-pendientes').style.display = 'none';
+            document.getElementById('btn-confirmar-envio').disabled = false;
+            document.getElementById('btn-confirmar-envio').style.opacity = '1';
+        }
+
+        document.getElementById('modal-confirmacion').style.display = 'flex';
+    });
+
+    document.getElementById('btn-continuar').addEventListener('click', () => {
+        document.getElementById('modal-confirmacion').style.display = 'none';
+    });
+
+    document.getElementById('btn-confirmar-envio').addEventListener('click', async () => {
+        // Verificar nuevamente que todas las preguntas estén respondidas
+        if (Object.keys(estadoTest.respuestas).length < bancoPreguntas.length) {
+            alert('⚠️ Debes responder TODAS las preguntas antes de enviar.');
+            return;
+        }
+        await enviarRespuestas();
+    });
+
+    // ============================================
+    // ENVÍO A SUPABASE
+    // ============================================
+    async function enviarRespuestas() {
+        const objetoRespuestas = {};
+        bancoPreguntas.forEach(pregunta => {
+            objetoRespuestas[pregunta.numero] = estadoTest.respuestas[pregunta.numero] || 'SIN_RESPUESTA';
+        });
+
+        const respuestasDetalladas = {};
+        bancoPreguntas.forEach(pregunta => {
+            const respuestaEstudiante = estadoTest.respuestas[pregunta.numero] || 'SIN_RESPUESTA';
+            const esCorrecta = respuestaEstudiante === pregunta.respuesta_correcta;
+
+            respuestasDetalladas[pregunta.numero] = {
+                respuesta: respuestaEstudiante,
+                competencia: pregunta.competencia,
+                componente: pregunta.componente,
+                tema: pregunta.tema,
+                acierto: esCorrecta,
+                respuesta_correcta: pregunta.respuesta_correcta
+            };
+        });
+
+        const registro = {
+            documento_estudiante: estudianteActual.documento,
+            respuestas: objetoRespuestas,
+            respuestas_detalladas: respuestasDetalladas
+        };
+
+        try {
+            const { data, error } = await supabaseClient
+                .from('respuestas_estudiantes')
+                .insert([registro]);
+
+            if (error) throw error;
+
+            document.getElementById('modal-confirmacion').style.display = 'none';
+            document.getElementById('exito-nombre').textContent = estudianteActual.nombre;
+            document.getElementById('modal-exito').style.display = 'flex';
+
+        } catch (error) {
+            console.error('Error al enviar respuestas:', error);
+            alert('❌ Error al enviar respuestas. Por favor, intenta nuevamente.\n\n' + error.message);
+        }
+    }
+
+    // ============================================
+    // FUNCIONES AUXILIARES
+    // ============================================
+    function actualizarEstado() {
+        const respondidas = Object.keys(estadoTest.respuestas).length;
+        const progreso = (respondidas / bancoPreguntas.length) * 100;
+
+        document.getElementById('contador-preguntas').textContent =
+            `Pregunta ${estadoTest.preguntaActual + 1} de ${bancoPreguntas.length}`;
+        document.getElementById('contador-respondidas').textContent =
+            `Respondidas: ${respondidas}/${bancoPreguntas.length}`;
+        document.querySelector('.progreso-actual').style.width = `${progreso}%`;
+
+        actualizarMapaPreguntas();
+    }
+
+    function generarMapaPreguntas() {
+        const mapa = document.getElementById('mapa-botones');
+        mapa.innerHTML = bancoPreguntas.map((p, i) =>
+            `<button class="btn-mapa" data-index="${i}">${p.numero}</button>`
+        ).join('');
+
+        mapa.querySelectorAll('.btn-mapa').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                const index = parseInt(e.target.dataset.index);
+                estadoTest.preguntaActual = index;
+                renderizarPregunta(index);
+            });
+        });
+    }
+
+    function actualizarMapaPreguntas() {
+        document.querySelectorAll('.btn-mapa').forEach((btn, i) => {
+            const numeroPregunta = bancoPreguntas[i].numero;
+            btn.classList.remove('respondida', 'actual');
+
+            if (estadoTest.respuestas[numeroPregunta]) {
+                btn.classList.add('respondida');
+            }
+
+            if (i === estadoTest.preguntaActual) {
+                btn.classList.add('actual');
+            }
+        });
+    }
+
+    function actualizarNavegacion(index) {
+        document.getElementById('btn-anterior').disabled = (index === 0);
+
+        if (index === bancoPreguntas.length - 1) {
+            document.getElementById('btn-siguiente').style.display = 'none';
+            document.getElementById('btn-finalizar').style.display = 'inline-block';
+        } else {
+            document.getElementById('btn-siguiente').style.display = 'inline-block';
+            document.getElementById('btn-finalizar').style.display = 'none';
+        }
+    }
+
+</script>
+
+</body>
+</html>

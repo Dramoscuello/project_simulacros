@@ -1,0 +1,1744 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Simulacro ICFES - Matemáticas</title>
+
+    <!-- Chart.js para gráficos -->
+    <script src="./chart.umd.min.js"></script>
+
+    <!-- Supabase JS Client -->
+    <script src="./supabase-js@2"></script>
+
+    <style>
+        /* ============================================ */
+        /* ESTILOS PROFESIONALES TIPO ICFES */
+        /* ============================================ */
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        /* ============================================ */
+        /* MODAL OVERLAY */
+        /* ============================================ */
+
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+            animation: fadeIn 0.3s ease;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        .modal-contenido {
+            background: white;
+            padding: 2.5rem;
+            border-radius: 12px;
+            max-width: 450px;
+            width: 90%;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            animation: slideUp 0.4s ease;
+        }
+
+        @keyframes slideUp {
+            from { transform: translateY(50px); opacity: 0; }
+            to { transform: translateY(0); opacity: 1; }
+        }
+
+        .modal-contenido h2 {
+            color: #333;
+            margin-bottom: 1rem;
+            font-size: 1.5rem;
+        }
+
+        .modal-contenido p {
+            color: #666;
+            margin-bottom: 1.5rem;
+            line-height: 1.6;
+        }
+
+        /* ============================================ */
+        /* FORMULARIOS */
+        /* ============================================ */
+
+        .form-group {
+            margin-bottom: 1.5rem;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 0.5rem;
+            color: #333;
+            font-weight: 600;
+        }
+
+        .form-group input {
+            width: 100%;
+            padding: 0.75rem;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 1rem;
+            transition: border-color 0.3s;
+        }
+
+        .form-group input:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        /* ============================================ */
+        /* BOTONES */
+        /* ============================================ */
+
+        .btn {
+            padding: 0.75rem 1.5rem;
+            border: none;
+            border-radius: 8px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            text-align: center;
+        }
+
+        .btn-primario {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            width: 100%;
+        }
+
+        .btn-primario:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        }
+
+        .btn-primario:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .btn-secundario {
+            background: #f5f5f5;
+            color: #333;
+        }
+
+        .btn-secundario:hover {
+            background: #e0e0e0;
+        }
+
+        .btn-finalizar {
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+            color: white;
+        }
+
+        /* ============================================ */
+        /* MENSAJES */
+        /* ============================================ */
+
+        .mensaje-error {
+            background: #ffebee;
+            color: #c62828;
+            padding: 1rem;
+            border-radius: 8px;
+            border-left: 4px solid #c62828;
+            margin-top: 1rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .mensaje-loading {
+            background: #e3f2fd;
+            color: #1565c0;
+            padding: 1rem;
+            border-radius: 8px;
+            border-left: 4px solid #1565c0;
+            margin-top: 1rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .mensaje-advertencia {
+            background: #fff3cd;
+            color: #856404;
+            padding: 1rem;
+            border-radius: 8px;
+            border-left: 4px solid #ffc107;
+            margin: 1rem 0;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        /* ============================================ */
+        /* CONTENEDOR PRINCIPAL DEL TEST */
+        /* ============================================ */
+
+        .contenedor-test {
+            background: white;
+            width: 95%;
+            max-width: 1200px;
+            min-height: 90vh;
+            border-radius: 12px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            overflow: hidden;
+            display: none;
+        }
+
+        .header-test {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 1.5rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 1rem;
+        }
+
+        .header-test h1 {
+            font-size: 1.5rem;
+        }
+
+        .info-estudiante {
+            display: flex;
+            gap: 2rem;
+            flex-wrap: wrap;
+        }
+
+        .info-estudiante span {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        /* ============================================ */
+        /* INSTRUCCIONES */
+        /* ============================================ */
+
+        .contenedor-instrucciones {
+            background: white;
+            width: 95%;
+            max-width: 900px;
+            padding: 3rem;
+            border-radius: 12px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            display: none;
+        }
+
+        .contenedor-instrucciones h1 {
+            color: #667eea;
+            margin-bottom: 0.5rem;
+        }
+
+        .contenedor-instrucciones h2 {
+            color: #333;
+            margin-bottom: 1.5rem;
+        }
+
+        .instrucciones-contenido {
+            color: #555;
+            line-height: 1.8;
+            margin-bottom: 2rem;
+        }
+
+        .instrucciones-contenido ul {
+            list-style: none;
+            padding-left: 0;
+        }
+
+        .instrucciones-contenido li {
+            padding: 0.5rem 0;
+            padding-left: 1.5rem;
+            position: relative;
+        }
+
+        .instrucciones-contenido li:before {
+            content: "✓";
+            position: absolute;
+            left: 0;
+            color: #667eea;
+            font-weight: bold;
+        }
+
+        .competencias {
+            background: #f5f5f5;
+            padding: 1.5rem;
+            border-radius: 8px;
+            margin-top: 1.5rem;
+        }
+
+        .competencias h3 {
+            color: #333;
+            margin-bottom: 1rem;
+        }
+
+        /* ============================================ */
+        /* BARRA DE PROGRESO */
+        /* ============================================ */
+
+        .progreso {
+            padding: 1.5rem;
+            background: #f9f9f9;
+            border-bottom: 1px solid #e0e0e0;
+        }
+
+        .progreso-info {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 0.75rem;
+            font-weight: 600;
+            color: #555;
+        }
+
+        .barra-progreso {
+            width: 100%;
+            height: 8px;
+            background: #e0e0e0;
+            border-radius: 10px;
+            overflow: hidden;
+        }
+
+        .progreso-actual {
+            height: 100%;
+            background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
+            transition: width 0.3s ease;
+            border-radius: 10px;
+        }
+
+        /* ============================================ */
+        /* PREGUNTA */
+        /* ============================================ */
+
+        .pregunta-contenedor {
+            padding: 2rem;
+            max-width: 900px;
+            margin: 0 auto;
+        }
+
+        .pregunta-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1.5rem;
+            flex-wrap: wrap;
+            gap: 1rem;
+        }
+
+        .numero-pregunta {
+            font-size: 1.25rem;
+            font-weight: bold;
+            color: #667eea;
+        }
+
+        .etiqueta-competencia {
+            background: #e8eaf6;
+            color: #667eea;
+            padding: 0.4rem 1rem;
+            border-radius: 20px;
+            font-size: 0.85rem;
+            font-weight: 600;
+        }
+
+        .contexto {
+            background: #f5f5f5;
+            padding: 1.5rem;
+            border-radius: 8px;
+            margin-bottom: 1.5rem;
+            line-height: 1.8;
+            color: #333;
+        }
+
+        .contenedor-grafico {
+            margin: 1.5rem 0;
+            padding: 1rem;
+            background: #fafafa;
+            border-radius: 8px;
+            border: 1px solid #e0e0e0;
+        }
+
+        .contenedor-grafico canvas {
+            max-height: 400px;
+        }
+
+        .contenedor-grafico table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 0 auto;
+        }
+
+        .contenedor-grafico th {
+            background: #667eea;
+            color: white;
+            padding: 12px;
+            font-weight: 600;
+            border: 1px solid #5568d3;
+        }
+
+        .contenedor-grafico td {
+            border: 1px solid #ddd;
+            padding: 12px;
+            text-align: center;
+        }
+
+        .contenedor-grafico tr:nth-child(even) {
+            background: #f9f9f9;
+        }
+
+        .grafico-svg {
+            display: block;
+            margin: 0 auto;
+            max-width: 100%;
+            height: auto;
+        }
+
+        .pregunta-texto {
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: #333;
+            margin: 1.5rem 0;
+            line-height: 1.6;
+        }
+
+        /* ============================================ */
+        /* OPCIONES DE RESPUESTA */
+        /* ============================================ */
+
+        .opciones {
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+        }
+
+        .opcion {
+            display: flex;
+            align-items: flex-start;
+            padding: 1rem 1.25rem;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s;
+            background: white;
+        }
+
+        .opcion:hover {
+            border-color: #667eea;
+            background: #f5f7ff;
+        }
+
+        .opcion.seleccionada {
+            border-color: #667eea;
+            background: #e8eaf6;
+        }
+
+        .opcion input[type="radio"] {
+            display: none;
+        }
+
+        .letra-opcion {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            background: #f5f5f5;
+            color: #666;
+            font-weight: bold;
+            margin-right: 1rem;
+            flex-shrink: 0;
+            transition: all 0.3s;
+        }
+
+        .opcion.seleccionada .letra-opcion {
+            background: #667eea;
+            color: white;
+        }
+
+        .texto-opcion {
+            flex: 1;
+            line-height: 1.6;
+            color: #333;
+        }
+
+        /* ============================================ */
+        /* NAVEGACIÓN */
+        /* ============================================ */
+
+        .navegacion {
+            padding: 1.5rem 2rem;
+            border-top: 1px solid #e0e0e0;
+            display: flex;
+            justify-content: space-between;
+            gap: 1rem;
+            flex-wrap: wrap;
+        }
+
+        .navegacion button {
+            padding: 0.75rem 2rem;
+        }
+
+        /* ============================================ */
+        /* MAPA DE PREGUNTAS */
+        /* ============================================ */
+
+        .mapa-preguntas {
+            padding: 1.5rem 2rem;
+            background: #fafafa;
+            border-top: 1px solid #e0e0e0;
+        }
+
+        .mapa-preguntas h4 {
+            margin-bottom: 1rem;
+            color: #555;
+        }
+
+        .mapa-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(50px, 1fr));
+            gap: 0.5rem;
+            margin-bottom: 1rem;
+        }
+
+        .btn-mapa {
+            width: 50px;
+            height: 50px;
+            border: 2px solid #e0e0e0;
+            background: white;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.3s;
+        }
+
+        .btn-mapa:hover {
+            border-color: #667eea;
+            transform: scale(1.05);
+        }
+
+        .btn-mapa.respondida {
+            background: #4caf50;
+            color: white;
+            border-color: #4caf50;
+        }
+
+        .btn-mapa.actual {
+            background: #667eea;
+            color: white;
+            border-color: #667eea;
+        }
+
+        .leyenda-mapa {
+            display: flex;
+            gap: 2rem;
+            flex-wrap: wrap;
+            font-size: 0.9rem;
+            color: #666;
+        }
+
+        .leyenda-mapa span {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .indicador {
+            width: 20px;
+            height: 20px;
+            border-radius: 4px;
+            border: 2px solid #e0e0e0;
+        }
+
+        .indicador.respondida {
+            background: #4caf50;
+            border-color: #4caf50;
+        }
+
+        .indicador.pendiente {
+            background: white;
+        }
+
+        /* ============================================ */
+        /* MODAL DE ÉXITO */
+        /* ============================================ */
+
+        .exito-icono {
+            font-size: 4rem;
+            text-align: center;
+            margin-bottom: 1rem;
+        }
+
+        .modal-acciones {
+            display: flex;
+            gap: 1rem;
+            margin-top: 1.5rem;
+        }
+
+        .modal-acciones button {
+            flex: 1;
+        }
+
+        .resumen-respuestas {
+            background: #f5f5f5;
+            padding: 1rem;
+            border-radius: 8px;
+            margin: 1rem 0;
+        }
+
+        .resumen-respuestas p {
+            margin: 0.5rem 0;
+        }
+
+        /* ============================================ */
+        /* RESPONSIVE */
+        /* ============================================ */
+
+        @media (max-width: 768px) {
+            .header-test {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+
+            .mapa-grid {
+                grid-template-columns: repeat(auto-fill, minmax(45px, 1fr));
+            }
+
+            .navegacion {
+                flex-direction: column;
+            }
+
+            .navegacion button {
+                width: 100%;
+            }
+
+            .contenedor-instrucciones {
+                padding: 1.5rem;
+            }
+        }
+    </style>
+</head>
+<body>
+
+<!-- ============================================ -->
+<!-- MODAL DE AUTENTICACIÓN -->
+<!-- ============================================ -->
+<div id="modal-autenticacion" class="modal-overlay">
+    <div class="modal-contenido">
+        <h2>🎓 Simulacro ICFES - Matemáticas</h2>
+        <p>Ingresa tu número de documento para acceder al test</p>
+
+        <form id="form-autenticacion">
+            <div class="form-group">
+                <label for="documento">Número de Documento</label>
+                <input
+                        type="text"
+                        id="documento"
+                        placeholder="Ej: 1234567890"
+                        required
+                        pattern="[0-9]+"
+                        title="Solo números"
+                        maxlength="15"
+                >
+            </div>
+            <button type="submit" class="btn btn-primario">Ingresar</button>
+        </form>
+
+        <div id="error-autenticacion" class="mensaje-error" style="display:none;">
+            <span>❌</span>
+            <span>Documento no encontrado. Contacta al administrador.</span>
+        </div>
+
+        <div id="loading-autenticacion" class="mensaje-loading" style="display:none;">
+            <span>🔄</span>
+            <span>Verificando documento...</span>
+        </div>
+    </div>
+</div>
+
+<!-- ============================================ -->
+<!-- PANTALLA DE INSTRUCCIONES -->
+<!-- ============================================ -->
+<div id="instrucciones" class="contenedor-instrucciones">
+    <h1>¡Bienvenido/a, <span id="nombre-estudiante"></span>!</h1>
+    <h2>Instrucciones del Simulacro de Matemáticas</h2>
+
+    <div class="instrucciones-contenido">
+        <p><strong>Esta prueba contiene 20 preguntas de selección múltiple con única respuesta.</strong></p>
+
+        <ul>
+            <li>Lee cuidadosamente cada pregunta y su contexto</li>
+            <li>Algunas preguntas incluyen gráficos, tablas o diagramas</li>
+            <li>Selecciona UNA opción de respuesta (A, B, C o D)</li>
+            <li>Puedes navegar entre preguntas usando los botones</li>
+            <li>El mapa inferior te permite ir directamente a cualquier pregunta</li>
+            <li>Todas las preguntas son obligatorias antes de finalizar</li>
+            <li><strong>Una vez envíes tus respuestas, no podrás modificarlas</strong></li>
+        </ul>
+
+        <div class="competencias">
+            <h3>📊 Competencias evaluadas:</h3>
+            <ul>
+                <li><strong>Interpretación y representación:</strong> Comprensión y transformación de información en diferentes formatos</li>
+                <li><strong>Formulación y ejecución:</strong> Planteamiento e implementación de estrategias para resolver problemas</li>
+                <li><strong>Argumentación:</strong> Validación de procedimientos y soluciones matemáticas</li>
+            </ul>
+        </div>
+    </div>
+
+    <button id="btn-comenzar" class="btn btn-primario">🚀 Comenzar Simulacro</button>
+</div>
+
+<!-- ============================================ -->
+<!-- CONTENEDOR PRINCIPAL DEL TEST -->
+<!-- ============================================ -->
+<div id="contenedor-test" class="contenedor-test">
+
+    <!-- Header -->
+    <div class="header-test">
+        <h1>📐 Simulacro ICFES - Matemáticas</h1>
+        <div class="info-estudiante">
+            <span>👤 <strong id="header-nombre"></strong></span>
+            <span>🆔 <strong id="header-documento"></strong></span>
+        </div>
+    </div>
+
+    <!-- Barra de progreso -->
+    <div class="progreso">
+        <div class="progreso-info">
+            <span id="contador-preguntas">Pregunta 1 de 20</span>
+            <span id="contador-respondidas">Respondidas: 0/20</span>
+        </div>
+        <div class="barra-progreso">
+            <div class="progreso-actual" style="width: 0%;"></div>
+        </div>
+    </div>
+
+    <!-- Pregunta actual -->
+    <div id="pregunta-actual" class="pregunta-contenedor">
+        <!-- Se renderiza dinámicamente con JavaScript -->
+    </div>
+
+    <!-- Navegación -->
+    <div class="navegacion">
+        <button id="btn-anterior" class="btn btn-secundario" disabled>← Anterior</button>
+        <button id="btn-siguiente" class="btn btn-primario">Siguiente →</button>
+        <button id="btn-finalizar" class="btn btn-finalizar" style="display:none;">✓ Finalizar Test</button>
+    </div>
+
+    <!-- Mapa de preguntas -->
+    <div class="mapa-preguntas">
+        <h4>Navegación rápida:</h4>
+        <div id="mapa-botones" class="mapa-grid">
+            <!-- Botones 1-20 generados dinámicamente -->
+        </div>
+        <div class="leyenda-mapa">
+            <span><span class="indicador respondida"></span> Respondida</span>
+            <span><span class="indicador pendiente"></span> Pendiente</span>
+        </div>
+    </div>
+
+</div>
+
+<!-- ============================================ -->
+<!-- MODAL DE CONFIRMACIÓN -->
+<!-- ============================================ -->
+<div id="modal-confirmacion" class="modal-overlay" style="display:none;">
+    <div class="modal-contenido">
+        <h2>⚠️ ¿Finalizar el simulacro?</h2>
+
+        <div class="resumen-respuestas">
+            <p>Has respondido <strong id="total-respondidas">0</strong> de <strong>20</strong> preguntas.</p>
+            <div id="advertencia-pendientes" class="mensaje-advertencia" style="display:none;">
+                <span>⚠️</span>
+                <span>Tienes <strong id="num-pendientes"></strong> preguntas sin responder. Todas las preguntas son obligatorias.</span>
+            </div>
+        </div>
+
+        <p style="margin-top: 1rem;">Una vez envíes, no podrás modificar tus respuestas.</p>
+
+        <div class="modal-acciones">
+            <button id="btn-continuar" class="btn btn-secundario">← Revisar respuestas</button>
+            <button id="btn-confirmar-envio" class="btn btn-finalizar">Sí, enviar respuestas →</button>
+        </div>
+    </div>
+</div>
+
+<!-- ============================================ -->
+<!-- MODAL DE ÉXITO -->
+<!-- ============================================ -->
+<div id="modal-exito" class="modal-overlay" style="display:none;">
+    <div class="modal-contenido">
+        <div class="exito-icono">✅</div>
+        <h2>¡Respuestas enviadas correctamente!</h2>
+        <p>Gracias por completar el simulacro, <strong id="exito-nombre"></strong>.</p>
+        <p>Tus resultados serán procesados y estarán disponibles próximamente.</p>
+        <button class="btn btn-primario" onclick="location.reload()">Cerrar</button>
+    </div>
+</div>
+
+<script>
+    // ============================================
+    // ⚙️ CONFIGURACIÓN DE SUPABASE
+    // ============================================
+    // 🔧 CONFIGURAR ESTAS VARIABLES CON TUS CREDENCIALES DE SUPABASE
+    const SUPABASE_URL = 'https://ikutsomtkzccnuvdvpen.supabase.co';  // Ejemplo: 'https://abcdefgh.supabase.co'
+    const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImlrdXRzb210a3pjY251dmR2cGVuIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjE5OTUxODMsImV4cCI6MjA3NzU3MTE4M30.G95k132Zvf7bDlLHrLqGxjUzhT0Vmr70ZWsbsPF1PfY';  // Ejemplo: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...'
+
+
+    // Inicializar cliente de Supabase
+    const { createClient } = supabase;
+    const supabaseClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+    // ============================================
+    // VARIABLES GLOBALES
+    // ============================================
+    let estudianteActual = {
+        documento: null,
+        nombre: ''
+    };
+
+    let estadoTest = {
+        preguntaActual: 0,
+        respuestas: {},
+        horaInicio: null
+    };
+
+    // ============================================
+    // BANCO DE PREGUNTAS (20 preguntas)
+    // ============================================
+    const bancoPreguntas = [
+        // ========== PREGUNTA 1 - FÁCIL ==========
+        {
+            numero: 1,
+            competencia: "Interpretación y representación",
+            componente: "Aleatorio",
+            tema: "Estadística - Medidas de tendencia central",
+            dificultad: "facil",
+            contexto: "En una empresa de tecnología se registraron las edades de 7 empleados del equipo de desarrollo: 24, 26, 24, 28, 30, 24 y 32 años.",
+            tiene_grafico: false,
+            pregunta: "¿Cuál es la moda de las edades de los empleados?",
+            opciones: {
+                A: "24 años",
+                B: "26 años",
+                C: "27 años",
+                D: "28 años"
+            },
+            respuesta_correcta: "A",
+            justificacion: "La moda es el valor que más se repite. En este caso, 24 aparece 3 veces, más que cualquier otro valor."
+        },
+
+        // ========== PREGUNTA 2 - MEDIA ==========
+        {
+            numero: 2,
+            competencia: "Formulación y ejecución",
+            componente: "Numérico-variacional",
+            tema: "Álgebra - Proporciones",
+            dificultad: "media",
+            contexto: "Un agricultor tiene un terreno rectangular de 120 metros de largo y 80 metros de ancho. Decide dividirlo en parcelas cuadradas de igual tamaño, siendo cada lado el mayor posible.",
+            tiene_grafico: false,
+            pregunta: "¿Cuál es la medida del lado de cada parcela cuadrada?",
+            opciones: {
+                A: "10 metros",
+                B: "20 metros",
+                C: "30 metros",
+                D: "40 metros"
+            },
+            respuesta_correcta: "D",
+            justificacion: "Se debe hallar el MCD (máximo común divisor) de 120 y 80, que es 40. Este es el lado mayor posible de las parcelas cuadradas."
+        },
+
+        // ========== PREGUNTA 3 - MEDIA CON GRÁFICO ==========
+        {
+            numero: 3,
+            competencia: "Interpretación y representación",
+            componente: "Aleatorio",
+            tema: "Estadística - Interpretación de gráficos",
+            dificultad: "media",
+            contexto: "Una cafetería registró las ventas de bebidas durante una semana. El siguiente gráfico muestra los resultados:",
+            tiene_grafico: true,
+            tipo_grafico: "barras",
+            pregunta: "¿Qué porcentaje aproximado representan las ventas de café con respecto al total de bebidas vendidas?",
+            opciones: {
+                A: "30%",
+                B: "35%",
+                C: "40%",
+                D: "45%"
+            },
+            respuesta_correcta: "C",
+            justificacion: "Café: 120 unidades. Total: 120+90+60+30 = 300 unidades. Porcentaje: (120/300) × 100 = 40%"
+        },
+
+        // ========== PREGUNTA 4 - DIFÍCIL ==========
+        {
+            numero: 4,
+            competencia: "Argumentación",
+            componente: "Numérico-variacional",
+            tema: "Álgebra - Sistemas de ecuaciones",
+            dificultad: "dificil",
+            contexto: "En una tienda, 3 camisas y 2 pantalones cuestan $180.000, mientras que 2 camisas y 4 pantalones cuestan $240.000.",
+            tiene_grafico: false,
+            pregunta: "Si una persona compra 1 camisa y 1 pantalón, ¿cuánto pagará?",
+            opciones: {
+                A: "$60.000",
+                B: "$70.000",
+                C: "$75.000",
+                D: "$80.000"
+            },
+            respuesta_correcta: "C",
+            justificacion: "Sistema: 3C+2P=180000; 2C+4P=240000. Resolviendo: C=30000, P=45000. Total: 30000+45000=75000"
+        },
+
+        // ========== PREGUNTA 5 - MEDIA CON TABLA ==========
+        {
+            numero: 5,
+            competencia: "Formulación y ejecución",
+            componente: "Aleatorio",
+            tema: "Estadística - Análisis de datos",
+            dificultad: "media",
+            contexto: "Una universidad realizó una encuesta sobre el medio de transporte que utilizan los estudiantes para llegar al campus. Los resultados se muestran en la siguiente tabla:",
+            tiene_grafico: true,
+            tipo_grafico: "tabla",
+            datos_tabla: {
+                headers: ["Medio de transporte", "Número de estudiantes"],
+                rows: [
+                    ["Bus", "350"],
+                    ["Bicicleta", "180"],
+                    ["Carro particular", "120"],
+                    ["A pie", "150"]
+                ]
+            },
+            pregunta: "Si se elige un estudiante al azar, ¿cuál es la probabilidad de que se transporte en bicicleta o a pie?",
+            opciones: {
+                A: "11/40",
+                B: "33/100",
+                C: "41/100",
+                D: "47/100"
+            },
+            respuesta_correcta: "C",
+            justificacion: "Bicicleta + A pie = 180 + 150 = 330. Total = 800. Probabilidad exacta = 330/800 = 33/80 = 0.4125. La aproximación más cercana entre las opciones es 41/100 (0.41)"
+             },
+
+        // ========== PREGUNTA 6 - FÁCIL ==========
+        {
+            numero: 6,
+            competencia: "Interpretación y representación",
+            componente: "Geométrico-métrico",
+            tema: "Geometría - Perímetro",
+            dificultad: "facil",
+            contexto: "Un jardín tiene forma de rectángulo con dimensiones de 15 metros de largo y 8 metros de ancho. Se desea colocar una cerca alrededor de todo el perímetro.",
+            tiene_grafico: false,
+            pregunta: "¿Cuántos metros de cerca se necesitan?",
+            opciones: {
+                A: "23 metros",
+                B: "30 metros",
+                C: "46 metros",
+                D: "120 metros"
+            },
+            respuesta_correcta: "C",
+            justificacion: "Perímetro = 2(largo + ancho) = 2(15 + 8) = 2(23) = 46 metros"
+        },
+
+        // ========== PREGUNTA 7 - MEDIA ==========
+        {
+            numero: 7,
+            competencia: "Formulación y ejecución",
+            componente: "Numérico-variacional",
+            tema: "Álgebra - Porcentajes y variación",
+            dificultad: "media",
+            contexto: "El precio de un producto aumentó un 20% y luego disminuyó un 20%. Si el precio original era de $50.000, ¿cuál es el precio final?",
+            tiene_grafico: false,
+            pregunta: "¿Cuál es el precio final del producto después de ambas variaciones?",
+            opciones: {
+                A: "$48.000",
+                B: "$49.000",
+                C: "$50.000",
+                D: "$52.000"
+            },
+            respuesta_correcta: "A",
+            justificacion: "Después del aumento: 50000 × 1.20 = 60000. Después de la disminución: 60000 × 0.80 = 48000"
+        },
+
+        // ========== PREGUNTA 8 - MEDIA CON GRÁFICO ==========
+        {
+            numero: 8,
+            competencia: "Interpretación y representación",
+            componente: "Geométrico-métrico",
+            tema: "Geometría - Áreas",
+            dificultad: "media",
+            contexto: "En un parque se construirá una zona de juegos con forma de triángulo isósceles. La base del triángulo mide 16 metros y la altura es de 12 metros.",
+            tiene_grafico: true,
+            tipo_grafico: "geometrico",
+            pregunta: "¿Cuál es el área de la zona de juegos?",
+            opciones: {
+                A: "84 m²",
+                B: "96 m²",
+                C: "112 m²",
+                D: "192 m²"
+            },
+            respuesta_correcta: "B",
+            justificacion: "Área del triángulo = (base × altura) / 2 = (16 × 12) / 2 = 192 / 2 = 96 m²"
+        },
+
+        // ========== PREGUNTA 9 - DIFÍCIL ==========
+        {
+            numero: 9,
+            competencia: "Argumentación",
+            componente: "Numérico-variacional",
+            tema: "Álgebra - Funciones cuadráticas",
+            dificultad: "dificil",
+            contexto: "Una pelota es lanzada verticalmente hacia arriba. Su altura h (en metros) en función del tiempo t (en segundos) está dada por la ecuación: h(t) = -5t² + 20t + 2",
+            tiene_grafico: false,
+            pregunta: "¿En qué momento la pelota alcanza su altura máxima?",
+            opciones: {
+                A: "t = 1 segundo",
+                B: "t = 2 segundos",
+                C: "t = 3 segundos",
+                D: "t = 4 segundos"
+            },
+            respuesta_correcta: "B",
+            justificacion: "En una parábola y = ax² + bx + c, el vértice está en x = -b/2a. Aquí: t = -20/(2×(-5)) = -20/(-10) = 2 segundos"
+        },
+
+        // ========== PREGUNTA 10 - MEDIA ==========
+        {
+            numero: 10,
+            competencia: "Formulación y ejecución",
+            componente: "Aleatorio",
+            tema: "Probabilidad - Eventos independientes",
+            dificultad: "media",
+            contexto: "En una bolsa hay 5 bolas rojas, 3 bolas azules y 2 bolas verdes. Se extrae una bola al azar, se registra su color y se devuelve a la bolsa. Luego se extrae otra bola.",
+            tiene_grafico: false,
+            pregunta: "¿Cuál es la probabilidad de que ambas bolas extraídas sean rojas?",
+            opciones: {
+                A: "1/4",
+                B: "1/3",
+                C: "1/2",
+                D: "2/5"
+            },
+            respuesta_correcta: "A",
+            justificacion: "P(roja) = 5/10 = 1/2. Como se devuelve la bola: P(ambas rojas) = (1/2) × (1/2) = 1/4"
+        },
+
+        // ========== PREGUNTA 11 - FÁCIL ==========
+        {
+            numero: 11,
+            competencia: "Interpretación y representación",
+            componente: "Numérico-variacional",
+            tema: "Aritmética - Operaciones básicas",
+            dificultad: "facil",
+            contexto: "Un ciclista recorre 15 kilómetros en 45 minutos a velocidad constante.",
+            tiene_grafico: false,
+            pregunta: "¿Cuál es la velocidad del ciclista en km/h?",
+            opciones: {
+                A: "15 km/h",
+                B: "20 km/h",
+                C: "25 km/h",
+                D: "30 km/h"
+            },
+            respuesta_correcta: "B",
+            justificacion: "45 minutos = 0.75 horas. Velocidad = distancia/tiempo = 15/0.75 = 20 km/h"
+        },
+
+        // ========== PREGUNTA 12 - MEDIA CON GRÁFICO ==========
+        {
+            numero: 12,
+            competencia: "Interpretación y representación",
+            componente: "Aleatorio",
+            tema: "Estadística - Gráficos circulares",
+            dificultad: "media",
+            contexto: "Una encuesta sobre preferencias de géneros musicales en un colegio arrojó los siguientes resultados: Pop 40%, Rock 25%, Reggaetón 20%, Otros 15%. Se encuestaron 400 estudiantes.",
+            tiene_grafico: true,
+            tipo_grafico: "circular",
+            pregunta: "¿Cuántos estudiantes más prefieren Pop que Reggaetón?",
+            opciones: {
+                A: "60 estudiantes",
+                B: "80 estudiantes",
+                C: "100 estudiantes",
+                D: "120 estudiantes"
+            },
+            respuesta_correcta: "B",
+            justificacion: "Pop: 40% de 400 = 160 estudiantes. Reggaetón: 20% de 400 = 80 estudiantes. Diferencia: 160 - 80 = 80"
+        },
+
+        // ========== PREGUNTA 13 - MEDIA ==========
+        {
+            numero: 13,
+            competencia: "Formulación y ejecución",
+            componente: "Geométrico-métrico",
+            tema: "Geometría - Volumen",
+            dificultad: "media",
+            contexto: "Un tanque de agua tiene forma de cilindro con un radio de 2 metros y una altura de 5 metros. (Use π ≈ 3.14)",
+            tiene_grafico: false,
+            pregunta: "¿Cuál es aproximadamente la capacidad del tanque en metros cúbicos?",
+            opciones: {
+                A: "31.4 m³",
+                B: "41.8 m³",
+                C: "52.6 m³",
+                D: "62.8 m³"
+            },
+            respuesta_correcta: "D",
+            justificacion: "Volumen del cilindro = π × r² × h = 3.14 × 2² × 5 = 3.14 × 4 × 5 = 62.8 m³"
+        },
+
+        // ========== PREGUNTA 14 - DIFÍCIL CON GRÁFICO ==========
+        {
+            numero: 14,
+            competencia: "Argumentación",
+            componente: "Numérico-variacional",
+            tema: "Álgebra - Funciones lineales",
+            dificultad: "dificil",
+            contexto: "Una empresa de taxis cobra una tarifa base de $4.000 más $1.500 por cada kilómetro recorrido. La siguiente gráfica muestra la relación entre la distancia y el costo total.",
+            tiene_grafico: true,
+            tipo_grafico: "lineas",
+            pregunta: "Si un pasajero pagó $16.000, ¿cuántos kilómetros recorrió?",
+            opciones: {
+                A: "6 km",
+                B: "7 km",
+                C: "8 km",
+                D: "9 km"
+            },
+            respuesta_correcta: "C",
+            justificacion: "Ecuación: Costo = 4000 + 1500k. Si Costo = 16000: 16000 = 4000 + 1500k → 12000 = 1500k → k = 8 km"
+        },
+
+        // ========== PREGUNTA 15 - MEDIA ==========
+        {
+            numero: 15,
+            competencia: "Formulación y ejecución",
+            componente: "Numérico-variacional",
+            tema: "Álgebra - Ecuaciones",
+            dificultad: "media",
+            contexto: "La edad de Juan es el triple de la edad de su hermana María. Si dentro de 5 años, la suma de sus edades será 46 años.",
+            tiene_grafico: false,
+            pregunta: "¿Cuál es la edad actual de Juan?",
+            opciones: {
+                A: "21 años",
+                B: "24 años",
+                C: "27 años",
+                D: "30 años"
+            },
+            respuesta_correcta: "C",
+            justificacion: "Sea x la edad de María. Juan tiene 3x. Ecuación: (x+5) + (3x+5) = 46 → 4x + 10 = 46 → x = 9. Juan: 3(9) = 27 años"
+        },
+
+        // ========== PREGUNTA 16 - FÁCIL ==========
+        {
+            numero: 16,
+            competencia: "Interpretación y representación",
+            componente: "Geométrico-métrico",
+            tema: "Geometría - Ángulos",
+            dificultad: "facil",
+            contexto: "Dos ángulos son complementarios. Si uno de ellos mide 35°, ¿cuánto mide el otro ángulo?",
+            tiene_grafico: false,
+            pregunta: "¿Cuál es la medida del ángulo complementario?",
+            opciones: {
+                A: "45°",
+                B: "55°",
+                C: "65°",
+                D: "145°"
+            },
+            respuesta_correcta: "B",
+            justificacion: "Los ángulos complementarios suman 90°. Por lo tanto: 90° - 35° = 55°"
+        },
+
+        // ========== PREGUNTA 17 - MEDIA CON TABLA ==========
+        {
+            numero: 17,
+            competencia: "Interpretación y representación",
+            componente: "Aleatorio",
+            tema: "Estadística - Media aritmética",
+            dificultad: "media",
+            contexto: "Un estudiante obtuvo las siguientes calificaciones en sus evaluaciones bimestrales:",
+            tiene_grafico: true,
+            tipo_grafico: "tabla",
+            datos_tabla: {
+                headers: ["Bimestre", "Calificación"],
+                rows: [
+                    ["Primero", "3.8"],
+                    ["Segundo", "4.2"],
+                    ["Tercero", "3.6"],
+                    ["Cuarto", "4.4"]
+                ]
+            },
+            pregunta: "¿Cuál es el promedio de calificaciones del estudiante en el año?",
+            opciones: {
+                A: "3.8",
+                B: "3.9",
+                C: "4.0",
+                D: "4.1"
+            },
+            respuesta_correcta: "C",
+            justificacion: "Promedio = (3.8 + 4.2 + 3.6 + 4.4) / 4 = 16.0 / 4 = 4.0"
+        },
+
+        // ========== PREGUNTA 18 - MEDIA ==========
+        {
+            numero: 18,
+            competencia: "Argumentación",
+            componente: "Geométrico-métrico",
+            tema: "Geometría - Teorema de Pitágoras",
+            dificultad: "media",
+            contexto: "Una escalera de 10 metros de longitud se apoya contra una pared. La base de la escalera está a 6 metros de distancia de la pared.",
+            tiene_grafico: false,
+            pregunta: "¿A qué altura de la pared llega la escalera?",
+            opciones: {
+                A: "4 metros",
+                B: "6 metros",
+                C: "8 metros",
+                D: "12 metros"
+            },
+            respuesta_correcta: "C",
+            justificacion: "Por Pitágoras: a² + b² = c². Entonces: 6² + h² = 10² → 36 + h² = 100 → h² = 64 → h = 8 metros"
+        },
+
+        // ========== PREGUNTA 19 - DIFÍCIL ==========
+        {
+            numero: 19,
+            competencia: "Formulación y ejecución",
+            componente: "Numérico-variacional",
+            tema: "Álgebra - Progresiones",
+            dificultad: "dificil",
+            contexto: "Una bacteria se reproduce duplicándose cada hora. Si inicialmente hay 5 bacterias, ¿cuántas bacterias habrá después de 6 horas?",
+            tiene_grafico: false,
+            pregunta: "¿Cuántas bacterias habrá transcurridas 6 horas?",
+            opciones: {
+                A: "160 bacterias",
+                B: "240 bacterias",
+                C: "320 bacterias",
+                D: "640 bacterias"
+            },
+            respuesta_correcta: "C",
+            justificacion: "Progresión geométrica: N = N₀ × 2ⁿ = 5 × 2⁶ = 5 × 64 = 320 bacterias"
+        },
+
+        // ========== PREGUNTA 20 - MEDIA ==========
+        {
+            numero: 20,
+            competencia: "Formulación y ejecución",
+            componente: "Aleatorio",
+            tema: "Probabilidad - Eventos",
+            dificultad: "media",
+            contexto: "En un grupo de 50 estudiantes, 30 practican fútbol, 25 practican baloncesto y 10 practican ambos deportes.",
+            tiene_grafico: false,
+            pregunta: "¿Cuántos estudiantes NO practican ninguno de estos dos deportes?",
+            opciones: {
+                A: "5 estudiantes",
+                B: "10 estudiantes",
+                C: "15 estudiantes",
+                D: "20 estudiantes"
+            },
+            respuesta_correcta: "A",
+            justificacion: "Por inclusión-exclusión: Fútbol ∪ Baloncesto = 30 + 25 - 10 = 45. Ninguno = 50 - 45 = 5 estudiantes"
+        }
+    ];
+
+    // ============================================
+    // AUTENTICACIÓN
+    // ============================================
+    document.getElementById('form-autenticacion').addEventListener('submit', async (e) => {
+        e.preventDefault();
+
+        const documento = parseInt(document.getElementById('documento').value.trim());
+        const errorDiv = document.getElementById('error-autenticacion');
+        const loadingDiv = document.getElementById('loading-autenticacion');
+
+        errorDiv.style.display = 'none';
+        loadingDiv.style.display = 'flex';
+
+        try {
+            const { data, error } = await supabaseClient
+                .from('estudiantes')
+                .select('documento, nombre')
+                .eq('documento', documento)
+                .single();
+
+            loadingDiv.style.display = 'none';
+
+            if (error || !data) {
+                errorDiv.style.display = 'flex';
+                return;
+            }
+
+            estudianteActual.documento = data.documento;
+            estudianteActual.nombre = data.nombre;
+
+            document.getElementById('modal-autenticacion').style.display = 'none';
+            document.getElementById('nombre-estudiante').textContent = estudianteActual.nombre;
+            document.getElementById('instrucciones').style.display = 'flex';
+
+        } catch (error) {
+            console.error('Error al consultar Supabase:', error);
+            loadingDiv.style.display = 'none';
+            errorDiv.innerHTML = '<span>❌</span><span>Error de conexión. Intenta nuevamente.</span>';
+            errorDiv.style.display = 'flex';
+        }
+    });
+
+    // ============================================
+    // INICIAR TEST
+    // ============================================
+    document.getElementById('btn-comenzar').addEventListener('click', () => {
+        estadoTest.horaInicio = new Date();
+
+        document.getElementById('header-nombre').textContent = estudianteActual.nombre;
+        document.getElementById('header-documento').textContent = estudianteActual.documento;
+
+        document.getElementById('instrucciones').style.display = 'none';
+        document.getElementById('contenedor-test').style.display = 'block';
+
+        generarMapaPreguntas();
+        renderizarPregunta(0);
+    });
+
+    // ============================================
+    // RENDERIZAR PREGUNTA
+    // ============================================
+    function renderizarPregunta(index) {
+        const pregunta = bancoPreguntas[index];
+        const contenedor = document.getElementById('pregunta-actual');
+
+        let htmlGrafico = '';
+        if (pregunta.tiene_grafico) {
+            if (pregunta.tipo_grafico === 'tabla') {
+                htmlGrafico = generarTabla(pregunta.datos_tabla);
+            } else {
+                htmlGrafico = `<div class="contenedor-grafico">
+            <canvas id="grafico-pregunta-${pregunta.numero}"></canvas>
+          </div>`;
+            }
+        }
+
+        contenedor.innerHTML = `
+        <div class="pregunta-header">
+          <span class="numero-pregunta">Pregunta ${pregunta.numero}</span>
+          <span class="etiqueta-competencia">${pregunta.competencia}</span>
+        </div>
+
+        <div class="contexto">${pregunta.contexto}</div>
+
+        ${htmlGrafico}
+
+        <div class="pregunta-texto">${pregunta.pregunta}</div>
+
+        <div class="opciones">
+          ${Object.entries(pregunta.opciones).map(([letra, texto]) => `
+            <label class="opcion ${estadoTest.respuestas[pregunta.numero] === letra ? 'seleccionada' : ''}">
+              <input
+                type="radio"
+                name="respuesta-${pregunta.numero}"
+                value="${letra}"
+                ${estadoTest.respuestas[pregunta.numero] === letra ? 'checked' : ''}
+              >
+              <span class="letra-opcion">${letra}</span>
+              <span class="texto-opcion">${texto}</span>
+            </label>
+          `).join('')}
+        </div>
+      `;
+
+        if (pregunta.tiene_grafico && pregunta.tipo_grafico !== 'tabla') {
+            setTimeout(() => renderizarGrafico(pregunta), 100);
+        }
+
+        document.querySelectorAll(`input[name="respuesta-${pregunta.numero}"]`).forEach(input => {
+            input.addEventListener('change', (e) => {
+                estadoTest.respuestas[pregunta.numero] = e.target.value;
+
+                document.querySelectorAll('.opcion').forEach(op => op.classList.remove('seleccionada'));
+                e.target.closest('.opcion').classList.add('seleccionada');
+
+                actualizarEstado();
+            });
+        });
+
+        actualizarNavegacion(index);
+        actualizarEstado();
+    }
+
+    // ============================================
+    // GENERAR TABLA HTML
+    // ============================================
+    function generarTabla(datos) {
+        return `
+        <div class="contenedor-grafico">
+          <table>
+            <thead>
+              <tr>
+                ${datos.headers.map(h => `<th>${h}</th>`).join('')}
+              </tr>
+            </thead>
+            <tbody>
+              ${datos.rows.map(row => `
+                <tr>
+                  ${row.map(cell => `<td>${cell}</td>`).join('')}
+                </tr>
+              `).join('')}
+            </tbody>
+          </table>
+        </div>
+      `;
+    }
+
+    // ============================================
+    // RENDERIZAR GRÁFICOS (Chart.js)
+    // ============================================
+    function renderizarGrafico(pregunta) {
+        const ctx = document.getElementById(`grafico-pregunta-${pregunta.numero}`);
+        if (!ctx) return;
+
+        // Configuraciones específicas por pregunta
+        let config = {};
+
+        if (pregunta.numero === 3) {
+            // Gráfico de barras - Ventas de cafetería
+            config = {
+                type: 'bar',
+                data: {
+                    labels: ['Café', 'Jugo', 'Té', 'Chocolate'],
+                    datasets: [{
+                        label: 'Unidades vendidas',
+                        data: [120, 90, 60, 30],
+                        backgroundColor: ['#8B4513', '#FFA500', '#90EE90', '#8B0000'],
+                        borderColor: ['#654321', '#FF8C00', '#228B22', '#660000'],
+                        borderWidth: 2
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: true,
+                    plugins: {
+                        legend: { display: false },
+                        title: {
+                            display: true,
+                            text: 'Ventas de bebidas en la semana',
+                            font: { size: 16, weight: 'bold' }
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            title: { display: true, text: 'Cantidad' }
+                        },
+                        x: {
+                            title: { display: true, text: 'Tipo de bebida' }
+                        }
+                    }
+                }
+            };
+        }
+
+        if (pregunta.numero === 8) {
+            // Triángulo isósceles SVG
+            ctx.parentElement.innerHTML = `
+          <svg class="grafico-svg" width="300" height="250" viewBox="0 0 300 250">
+            <defs>
+              <pattern id="grid" width="20" height="20" patternUnits="userSpaceOnUse">
+                <path d="M 20 0 L 0 0 0 20" fill="none" stroke="#e0e0e0" stroke-width="0.5"/>
+              </pattern>
+            </defs>
+            <rect width="300" height="250" fill="url(#grid)" />
+
+            <!-- Triángulo -->
+            <polygon points="50,220 250,220 150,60"
+                     fill="#e3f2fd"
+                     stroke="#1976d2"
+                     stroke-width="3"/>
+
+            <!-- Base -->
+            <line x1="50" y1="220" x2="250" y2="220" stroke="#d32f2f" stroke-width="2"/>
+            <text x="150" y="240" text-anchor="middle" font-size="14" fill="#d32f2f" font-weight="bold">16 m</text>
+
+            <!-- Altura -->
+            <line x1="150" y1="220" x2="150" y2="60" stroke="#388e3c" stroke-width="2" stroke-dasharray="5,5"/>
+            <text x="165" y="140" font-size="14" fill="#388e3c" font-weight="bold">12 m</text>
+
+            <!-- Ángulo recto -->
+            <rect x="145" y="215" width="10" height="10" fill="none" stroke="#666" stroke-width="1"/>
+          </svg>
+        `;
+            return;
+        }
+
+        if (pregunta.numero === 12) {
+            // Gráfico circular - Géneros musicales
+            config = {
+                type: 'pie',
+                data: {
+                    labels: ['Pop', 'Rock', 'Reggaetón', 'Otros'],
+                    datasets: [{
+                        data: [40, 25, 20, 15],
+                        backgroundColor: ['#FF6384', '#36A2EB', '#FFCE56', '#4BC0C0'],
+                        borderColor: '#fff',
+                        borderWidth: 2
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: true,
+                    plugins: {
+                        legend: {
+                            position: 'right',
+                            labels: { font: { size: 12 }, padding: 15 }
+                        },
+                        title: {
+                            display: true,
+                            text: 'Preferencias de géneros musicales',
+                            font: { size: 16, weight: 'bold' }
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    return context.label + ': ' + context.parsed + '%';
+                                }
+                            }
+                        }
+                    }
+                }
+            };
+        }
+
+        if (pregunta.numero === 14) {
+            // Gráfico de líneas - Tarifa de taxi
+            config = {
+                type: 'line',
+                data: {
+                    labels: ['0', '2', '4', '6', '8', '10'],
+                    datasets: [{
+                        label: 'Costo ($)',
+                        data: [4000, 7000, 10000, 13000, 16000, 19000],
+                        borderColor: '#FF6B6B',
+                        backgroundColor: 'rgba(255, 107, 107, 0.1)',
+                        borderWidth: 3,
+                        pointRadius: 5,
+                        pointBackgroundColor: '#FF6B6B',
+                        tension: 0
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: true,
+                    plugins: {
+                        legend: { display: false },
+                        title: {
+                            display: true,
+                            text: 'Costo del taxi según distancia',
+                            font: { size: 16, weight: 'bold' }
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            title: { display: true, text: 'Costo (pesos)' },
+                            ticks: {
+                                callback: function(value) {
+                                    return '$' + value.toLocaleString();
+                                }
+                            }
+                        },
+                        x: {
+                            title: { display: true, text: 'Distancia (km)' }
+                        }
+                    }
+                }
+            };
+        }
+
+        if (Object.keys(config).length > 0) {
+            new Chart(ctx.getContext('2d'), config);
+        }
+    }
+
+    // ============================================
+    // NAVEGACIÓN
+    // ============================================
+    document.getElementById('btn-siguiente').addEventListener('click', () => {
+        if (estadoTest.preguntaActual < bancoPreguntas.length - 1) {
+            estadoTest.preguntaActual++;
+            renderizarPregunta(estadoTest.preguntaActual);
+        }
+    });
+
+    document.getElementById('btn-anterior').addEventListener('click', () => {
+        if (estadoTest.preguntaActual > 0) {
+            estadoTest.preguntaActual--;
+            renderizarPregunta(estadoTest.preguntaActual);
+        }
+    });
+
+    // ============================================
+    // FINALIZAR TEST
+    // ============================================
+    document.getElementById('btn-finalizar').addEventListener('click', () => {
+        const respondidas = Object.keys(estadoTest.respuestas).length;
+        const pendientes = bancoPreguntas.length - respondidas;
+
+        document.getElementById('total-respondidas').textContent = respondidas;
+
+        const advertenciaDiv = document.getElementById('advertencia-pendientes');
+        const btnConfirmar = document.getElementById('btn-confirmar-envio');
+
+        if (pendientes > 0) {
+            document.getElementById('num-pendientes').textContent = pendientes;
+            advertenciaDiv.style.display = 'flex';
+            btnConfirmar.disabled = true;
+            btnConfirmar.style.opacity = '0.5';
+            btnConfirmar.style.cursor = 'not-allowed';
+        } else {
+            advertenciaDiv.style.display = 'none';
+            btnConfirmar.disabled = false;
+            btnConfirmar.style.opacity = '1';
+            btnConfirmar.style.cursor = 'pointer';
+        }
+
+        document.getElementById('modal-confirmacion').style.display = 'flex';
+    });
+
+    document.getElementById('btn-continuar').addEventListener('click', () => {
+        document.getElementById('modal-confirmacion').style.display = 'none';
+    });
+
+    document.getElementById('btn-confirmar-envio').addEventListener('click', async () => {
+        const respondidas = Object.keys(estadoTest.respuestas).length;
+        if (respondidas < bancoPreguntas.length) {
+            alert('⚠️ Debes responder todas las preguntas antes de enviar.');
+            return;
+        }
+        await enviarRespuestas();
+    });
+
+    // ============================================
+    // ENVÍO A SUPABASE
+    // ============================================
+    async function enviarRespuestas() {
+        const objetoRespuestas = {};
+        bancoPreguntas.forEach(pregunta => {
+            objetoRespuestas[pregunta.numero] = estadoTest.respuestas[pregunta.numero] || 'SIN_RESPUESTA';
+        });
+
+        const respuestasDetalladas = {};
+        bancoPreguntas.forEach(pregunta => {
+            const respuestaEstudiante = estadoTest.respuestas[pregunta.numero] || 'SIN_RESPUESTA';
+            const esCorrecta = respuestaEstudiante === pregunta.respuesta_correcta;
+
+            respuestasDetalladas[pregunta.numero] = {
+                respuesta: respuestaEstudiante,
+                competencia: pregunta.competencia,
+                componente: pregunta.componente,
+                tema: pregunta.tema,
+                acierto: esCorrecta,
+                respuesta_correcta: pregunta.respuesta_correcta
+            };
+        });
+
+        const registro = {
+            documento_estudiante: estudianteActual.documento,
+            respuestas: objetoRespuestas,
+            respuestas_detalladas: respuestasDetalladas
+        };
+
+        try {
+            const { data, error } = await supabaseClient
+                .from('respuestas_estudiantes')
+                .insert([registro]);
+
+            if (error) throw error;
+
+            document.getElementById('modal-confirmacion').style.display = 'none';
+            document.getElementById('exito-nombre').textContent = estudianteActual.nombre;
+            document.getElementById('modal-exito').style.display = 'flex';
+
+        } catch (error) {
+            console.error('Error al enviar respuestas:', error);
+            alert('❌ Error al enviar respuestas. Por favor, intenta nuevamente.\n\n' + error.message);
+        }
+    }
+
+    // ============================================
+    // FUNCIONES AUXILIARES
+    // ============================================
+    function actualizarEstado() {
+        const respondidas = Object.keys(estadoTest.respuestas).length;
+        const progreso = (respondidas / bancoPreguntas.length) * 100;
+
+        document.getElementById('contador-preguntas').textContent =
+            `Pregunta ${estadoTest.preguntaActual + 1} de ${bancoPreguntas.length}`;
+        document.getElementById('contador-respondidas').textContent =
+            `Respondidas: ${respondidas}/${bancoPreguntas.length}`;
+        document.querySelector('.progreso-actual').style.width = `${progreso}%`;
+
+        actualizarMapaPreguntas();
+    }
+
+    function generarMapaPreguntas() {
+        const mapa = document.getElementById('mapa-botones');
+        mapa.innerHTML = bancoPreguntas.map((p, i) =>
+            `<button class="btn-mapa" data-index="${i}">${p.numero}</button>`
+        ).join('');
+
+        mapa.querySelectorAll('.btn-mapa').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                const index = parseInt(e.target.dataset.index);
+                estadoTest.preguntaActual = index;
+                renderizarPregunta(index);
+            });
+        });
+    }
+
+    function actualizarMapaPreguntas() {
+        document.querySelectorAll('.btn-mapa').forEach((btn, i) => {
+            const numeroPregunta = bancoPreguntas[i].numero;
+            btn.classList.remove('respondida', 'actual');
+
+            if (estadoTest.respuestas[numeroPregunta]) {
+                btn.classList.add('respondida');
+            }
+
+            if (i === estadoTest.preguntaActual) {
+                btn.classList.add('actual');
+            }
+        });
+    }
+
+    function actualizarNavegacion(index) {
+        document.getElementById('btn-anterior').disabled = (index === 0);
+
+        if (index === bancoPreguntas.length - 1) {
+            document.getElementById('btn-siguiente').style.display = 'none';
+            document.getElementById('btn-finalizar').style.display = 'inline-block';
+        } else {
+            document.getElementById('btn-siguiente').style.display = 'inline-block';
+            document.getElementById('btn-finalizar').style.display = 'none';
+        }
+    }
+
+</script>
+
+</body>
+</html>
