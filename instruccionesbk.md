@@ -12,7 +12,7 @@ Te adjunto:
 
 ## Objetivo Principal
 
-Analizar los materiales adjuntos y **generar un banco de preguntas originales** para el área de **Matemáticas**, siguiendo los patrones, marco de referencia y estándares del ICFES, pero con innovación en los contextos, datos y situaciones planteadas.
+Analizar los materiales adjuntos y **generar un banco de preguntas originales** para el área de **Matemáticas**, siguiendo la guía oficial del ministerio de educación nacional, los patrones, marco de referencia y estándares del ICFES, pero con innovación en los contextos, datos y situaciones planteadas.
 
 **⚠️ IMPORTANTE**: No se trata de replicar preguntas existentes, sino de **innovar manteniendo la estructura, competencias, niveles de desempeño y nivel de dificultad** observados en las pruebas oficiales.
 
@@ -56,23 +56,46 @@ CREATE TABLE estudiantes (
 CREATE TABLE respuestas_estudiantes (
   id SERIAL PRIMARY KEY,
   documento_estudiante INT8 REFERENCES estudiantes(documento),
-  respuestas JSONB NOT NULL
+  respuestas JSONB NOT NULL,
+  respuestas_detalladas JSONB NOT NULL  
 );
 ```
 
 **Ejemplo de datos después del envío:**
 ```json
 {
-  "id": 1,
-  "documento_estudiante": 1234567890,
+  "id": 221,
+  "documento_estudiante": 1063162459,
   "respuestas": {
     "1": "B",
     "2": "A",
-    "3": "C",
-    "4": "D",
-    "5": "A",
-    ...
-    "30": "B"
+    "3": "C"
+  },
+  "respuestas_detalladas": {
+    "1": {
+      "respuesta": "B",
+      "competencia": "Razonamiento y argumentación",
+      "componente": "Numérico-variacional",
+      "tema": "Álgebra - Ecuaciones lineales",
+      "acierto": true,
+      "respuesta_correcta": "B"
+    },
+    "2": {
+      "respuesta": "A",
+      "competencia": "Planteamiento y resolución de problemas",
+      "componente": "Geométrico-métrico",
+      "tema": "Geometría - Áreas y perímetros",
+      "acierto": false,
+      "respuesta_correcta": "C"
+    },
+    "3": {
+      "respuesta": "C",
+      "competencia": "Comunicación, representación y modelación",
+      "componente": "Aleatorio",
+      "tema": "Estadística - Probabilidad",
+      "acierto": true,
+      "respuesta_correcta": "C"
+    }
   }
 }
 ```
@@ -105,6 +128,14 @@ Cada pregunta debe incluir:
   "justificacion": "Explicación breve de por qué B es correcta"
 }
 ```
+
+### IMPORTANTE: Incluir metadatos en cada pregunta
+
+Cada pregunta DEBE incluir los siguientes campos para análisis:
+- `competencia`: "Comunicación, representación y modelación" | "Planteamiento y resolución de problemas" | "Razonamiento y argumentación"
+- `componente`: "Numérico-variacional" | "Geométrico-métrico" | "Aleatorio"
+- `tema`: Tema específico (ej: "Álgebra - Sistemas de ecuaciones")
+- `respuesta_correcta`: La opción correcta ("A", "B", "C" o "D")
 
 ### 2. Generación de Gráficos
 
@@ -1190,16 +1221,33 @@ Crea un **artefacto HTML completo** con las siguientes características:
     // ENVÍO A SUPABASE
     // ============================================
     async function enviarRespuestas() {
-        // Preparar objeto de respuestas en formato JSON
+        // Preparar objeto de respuestas SIMPLE
         const objetoRespuestas = {};
         bancoPreguntas.forEach(pregunta => {
             objetoRespuestas[pregunta.numero] = estadoTest.respuestas[pregunta.numero] || 'SIN_RESPUESTA';
         });
 
+        // Preparar objeto de respuestas DETALLADAS con análisis
+        const respuestasDetalladas = {};
+        bancoPreguntas.forEach(pregunta => {
+            const respuestaEstudiante = estadoTest.respuestas[pregunta.numero] || 'SIN_RESPUESTA';
+            const esCorrecta = respuestaEstudiante === pregunta.respuesta_correcta;
+
+            respuestasDetalladas[pregunta.numero] = {
+                respuesta: respuestaEstudiante,
+                competencia: pregunta.competencia,
+                componente: pregunta.componente,
+                tema: pregunta.tema,
+                acierto: esCorrecta,
+                respuesta_correcta: pregunta.respuesta_correcta
+            };
+        });
+
         // Preparar registro único
         const registro = {
             documento_estudiante: estudianteActual.documento,
-            respuestas: objetoRespuestas
+            respuestas: objetoRespuestas,
+            respuestas_detalladas: respuestasDetalladas
         };
 
         try {
@@ -1285,28 +1333,6 @@ Crea un **artefacto HTML completo** con las siguientes características:
 </html>
 ```
 
-##Prevenir Cierre Accidental del Navegador 🚨
-Problema: Estudiante cierra por error y pierde todo.
-Solución en el HTML:
-```
-javascript
-// ============================================
-// PREVENCIÓN DE CIERRE ACCIDENTAL
-// ============================================
-let respuestasEnviadas = false;
-
-window.addEventListener('beforeunload', (e) => {
-  if (!respuestasEnviadas && Object.keys(estadoTest.respuestas).length > 0) {
-    e.preventDefault();
-    e.returnValue = '⚠️ ¿Seguro que quieres salir? Perderás todas tus respuestas.';
-    return e.returnValue;
-  }
-});
-
-// En la función enviarRespuestas, después de éxito.:
-respuestasEnviadas = true;
-```
-
 ---
 
 ## Integración con Supabase
@@ -1324,7 +1350,8 @@ CREATE TABLE estudiantes (
 CREATE TABLE respuestas_estudiantes (
   id SERIAL PRIMARY KEY,
   documento_estudiante INT8 REFERENCES estudiantes(documento),
-  respuestas JSONB NOT NULL
+  respuestas JSONB NOT NULL,
+  respuestas_detalladas JSONB NOT NULL
 );
 ```
 
@@ -1332,32 +1359,51 @@ CREATE TABLE respuestas_estudiantes (
 
 Para cada estudiante, se inserta **UN SOLO registro** con todas las respuestas en formato JSON:
 ```javascript
-// Preparar objeto de respuestas
+// Preparar objeto de respuestas SIMPLE
 const objetoRespuestas = {};
 bancoPreguntas.forEach(pregunta => {
-  objetoRespuestas[pregunta.numero] = estadoTest.respuestas[pregunta.numero] || 'SIN_RESPUESTA';
+    objetoRespuestas[pregunta.numero] = estadoTest.respuestas[pregunta.numero] || 'SIN_RESPUESTA';
 });
 
+// Preparar objeto de respuestas DETALLADAS con análisis
+const respuestasDetalladas = {};
+bancoPreguntas.forEach(pregunta => {
+    const respuestaEstudiante = estadoTest.respuestas[pregunta.numero] || 'SIN_RESPUESTA';
+    const esCorrecta = respuestaEstudiante === pregunta.respuesta_correcta;
+
+    respuestasDetalladas[pregunta.numero] = {
+        respuesta: respuestaEstudiante,
+        competencia: pregunta.competencia,
+        componente: pregunta.componente,
+        tema: pregunta.tema,
+        acierto: esCorrecta,
+        respuesta_correcta: pregunta.respuesta_correcta
+    };
+});
+
+// Preparar registro único
 const registro = {
-  documento_estudiante: estudianteActual.documento,
-  respuestas: objetoRespuestas
+    documento_estudiante: estudianteActual.documento,
+    respuestas: objetoRespuestas,
+    respuestas_detalladas: respuestasDetalladas
+    // created_at y notificado se generan automáticamente en la BD
 };
 
 try {
-  const { data, error } = await supabaseClient
-    .from('respuestas_estudiantes')
-    .insert([registro]);
+    const { data, error } = await supabaseClient
+        .from('respuestas_estudiantes')
+        .insert([registro]);
 
-  if (error) throw error;
+    if (error) throw error;
 
-  // Mostrar éxito
-  document.getElementById('modal-confirmacion').style.display = 'none';
-  document.getElementById('exito-nombre').textContent = estudianteActual.nombre;
-  document.getElementById('modal-exito').style.display = 'flex';
+    // Mostrar éxito
+    document.getElementById('modal-confirmacion').style.display = 'none';
+    document.getElementById('exito-nombre').textContent = estudianteActual.nombre;
+    document.getElementById('modal-exito').style.display = 'flex';
 
 } catch (error) {
-  console.error('Error al enviar respuestas:', error);
-  alert('❌ Error al enviar respuestas. Por favor, intenta nuevamente.\n\n' + error.message);
+    console.error('Error al enviar respuestas:', error);
+    alert('❌ Error al enviar respuestas. Por favor, intenta nuevamente.\n\n' + error.message);
 }
 ```
 

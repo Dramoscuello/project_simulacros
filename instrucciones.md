@@ -12,9 +12,18 @@ Te adjunto:
 
 ## Objetivo Principal
 
-Analizar los materiales adjuntos y **generar un banco de preguntas originales** para el área de **Matemáticas**, siguiendo los patrones, marco de referencia y estándares del ICFES, pero con innovación en los contextos, datos y situaciones planteadas.
+Analizar los materiales adjuntos y **generar un banco de preguntas originales** para el área de **Matemáticas**, siguiendo la guía oficial del ministerio de educación nacional, los patrones, marco de referencia y estándares del ICFES, pero con innovación en los contextos, datos y situaciones planteadas.
 
 **⚠️ IMPORTANTE**: No se trata de replicar preguntas existentes, sino de **innovar manteniendo la estructura, competencias, niveles de desempeño y nivel de dificultad** observados en las pruebas oficiales.
+
+---
+
+## Sistema Multi-tenant
+
+El sistema soporta múltiples instituciones educativas. Cada simulacro se asigna a una institución específica para:
+- Evitar repetición de preguntas por institución
+- Análisis de resultados por institución
+- Trazabilidad de versiones de simulacros
 
 ---
 
@@ -35,30 +44,80 @@ Aplicadas en los siguientes **componentes**:
 
 ## Estructura de Base de Datos (Supabase)
 
-### Tabla `estudiantes`
+### Tabla `instituciones`
 ```sql
-CREATE TABLE estudiantes (
-  documento INT8 PRIMARY KEY,
-  nombre VARCHAR NOT NULL
+CREATE TABLE instituciones (
+  id SERIAL PRIMARY KEY,
+  nombre VARCHAR(255) NOT NULL,
+  direccion VARCHAR(100),
+  activo BOOLEAN DEFAULT true,
+  created_at TIMESTAMP DEFAULT NOW()
 );
 ```
 
 **Ejemplo de datos:**
 ```
-| documento  | nombre              |
-|------------|---------------------|
-| 1234567890 | Juan Pérez García   |
-| 9876543210 | María López Ruiz    |
+| id                                   | nombre              | activo |
+|--------------------------------------|---------------------|--------|
+| 1                                    | Colegio San José    | true   |
+| 2                                    | IE La Esperanza     | true   |
+```
+
+### Tabla `estudiantes`
+```sql
+CREATE TABLE estudiantes (
+  documento BIGINT PRIMARY KEY,
+  nombre VARCHAR(255) NOT NULL,
+  institucion_id INT REFERENCES instituciones(id) ON DELETE CASCADE,
+  admin BOOLEAN DEFAULT false,
+  created_at TIMESTAMP DEFAULT NOW()
+);
+```
+
+**Ejemplo de datos:**
+```
+| documento  | nombre              | institucion_id                       | admin |
+|------------|---------------------|--------------------------------------|-------|
+| 1234567890 | Juan Pérez García   | 1                                    | false |
+| 1063162459 | DEIMER Admin        | 2                                    | true  |
+```
+
+### Tabla `preguntas_usadas`
+```sql
+CREATE TABLE preguntas_usadas (
+  id SERIAL PRIMARY KEY,
+  institucion_id INT REFERENCES instituciones(id) ON DELETE CASCADE,
+  pregunta TEXT NOT NULL,
+  tema VARCHAR(255),
+  componente VARCHAR(255),
+  competencia VARCHAR(255),
+  version_simulacro VARCHAR(50),
+  created_at TIMESTAMP DEFAULT NOW()
+);
+
+CREATE INDEX idx_preguntas_institucion ON preguntas_usadas(institucion_id);
+```
+
+**Ejemplo de datos:**
+```
+| id | institucion_id                       | pregunta                        | tema                    | version_simulacro |
+|----|--------------------------------------|---------------------------------|-------------------------|-------------------|
+| 1  | 1                                    | Si 3x + 5 = 20, ¿cuál es x?    | Álgebra - Ecuaciones    | v2025-01          |
+| 2  | 2                                    | Un rectángulo tiene 12cm...     | Geometría - Áreas       | v2025-01          |
 ```
 
 ### Tabla `respuestas_estudiantes`
 ```sql
 CREATE TABLE respuestas_estudiantes (
   id SERIAL PRIMARY KEY,
-  documento_estudiante INT8 REFERENCES estudiantes(documento),
+  documento_estudiante BIGINT REFERENCES estudiantes(documento),
   respuestas JSONB NOT NULL,
-  respuestas_detalladas JSONB NOT NULL  
+  respuestas_detalladas JSONB NOT NULL,
+  created_at TIMESTAMP DEFAULT NOW(),
+  notificado BOOLEAN DEFAULT false
 );
+
+CREATE INDEX idx_respuestas_institucion ON respuestas_estudiantes(institucion_id);
 ```
 
 **Ejemplo de datos después del envío:**
@@ -96,7 +155,8 @@ CREATE TABLE respuestas_estudiantes (
       "acierto": true,
       "respuesta_correcta": "C"
     }
-  }
+  },
+  "notificado": false
 }
 ```
 
@@ -110,7 +170,7 @@ Cada pregunta debe incluir:
 ```json
 {
   "numero": 1,
-  "competencia": "Razonamiento cuantitativo",
+  "competencia": "Razonamiento y argumentación",
   "componente": "Numérico-variacional",
   "tema": "Álgebra - Sistemas de ecuaciones",
   "dificultad": "media",
@@ -183,11 +243,223 @@ new Chart(ctx, {
 
 ---
 
+## Generación de Preguntas sin Repetir
+
+### Contexto del Usuario
+
+**El usuario te proporcionará manualmente** un listado de preguntas que YA fueron usadas en simulacros anteriores para una institución específica. Este listado incluirá:
+- Texto de la pregunta (primeras 100-150 palabras)
+- Tema
+- Componente
+- Competencia
+- Versión del simulacro
+
+### SINO TE PROPORCIONA LISTADO DE PREGUNTAS ES QUE AUN NO SE HAN REALIZADO SIMULACROS ANTES EN ESA INSTITUCION EN ESPECIFICO
+
+### Tu Responsabilidad
+
+Cuando recibas este listado de preguntas ya usadas, debes:
+
+1. **Analizar cuidadosamente** cada pregunta listada
+2. **Identificar los temas, conceptos y enfoques** ya utilizados
+3. **Generar 30 preguntas COMPLETAMENTE DIFERENTES** que:
+    - Evalúen los **mismos temas** pero con **enfoques distintos**
+    - Usen **contextos diferentes** (deportes, tecnología, economía, naturaleza, ciencia)
+    - Tengan **valores numéricos distintos**
+    - Presenten **variaciones en complejidad**
+    - Utilicen **presentaciones variadas** (texto, gráficas, tablas)
+
+### Ejemplo de Variación Correcta
+
+**❌ PREGUNTA YA USADA:**
+```
+"Un rectángulo tiene 12 cm de largo y 8 cm de ancho. ¿Cuál es su área?"
+Tema: Geometría - Áreas
+```
+
+**✅ PREGUNTA NUEVA (mismo tema, enfoque diferente):**
+```
+"Un terreno rectangular tiene un perímetro de 60 metros. Si el largo es el triple del ancho, ¿cuál es el área del terreno?"
+Tema: Geometría - Áreas
+```
+
+**Ambas evalúan el mismo concepto (Geometría - Áreas) pero:**
+- Contextos diferentes (figura geométrica vs terreno)
+- Datos diferentes (medidas directas vs relación perímetro-dimensiones)
+- Complejidad diferente (cálculo directo vs resolución de sistema)
+
+### Instrucción Crítica
+
+**Si el usuario te proporciona preguntas ya usadas:**
+- Lee TODAS las preguntas cuidadosamente
+- Identifica patrones: tipos de problemas, enfoques, contextos
+- Genera preguntas ORIGINALES que:
+    - NO repliquen estructuras existentes
+    - NO usen contextos similares
+    - NO tengan datos parecidos
+    - PERO SÍ evalúen los mismos temas y competencias
+
+---
+
 ## Artefacto HTML a Generar
 
 Crea un **artefacto HTML completo** con las siguientes características:
 
-### Estructura del Artefacto
+### Sistema de Administrador
+
+El artefacto debe incluir:
+
+1. **Verificación de usuario administrador** al autenticarse
+2. **Modal exclusivo para administradores** que permita:
+    - Seleccionar la institución a la que pertenecen las preguntas del simulacro
+    - Ingresar la versión del simulacro (ej: "v2025-01")
+    - Guardar las 30 preguntas en la tabla `preguntas_usadas` de Supabase
+3. **Opción de continuar sin guardar** (para testing)
+
+### Flujo de Autenticación con Modo Admin
+```javascript
+// Después de autenticar con documento
+const { data: estudiante } = await supabaseClient
+  .from('estudiantes')
+  .select('documento, nombre, admin, institucion_id')
+  .eq('documento', documento)
+  .single();
+
+if (estudiante.admin === true) {
+  // Mostrar modal de administrador
+  mostrarModalAdmin();
+} else {
+  // Continuar flujo normal de estudiante
+  mostrarInstrucciones();
+}
+```
+
+### Modal de Administrador
+```html
+<!-- MODAL ADMINISTRADOR -->
+<div id="modal-admin" class="modal-overlay" style="display:none;">
+  <div class="modal-contenido">
+    <h2>🔐 Modo Administrador</h2>
+    <p>Configura las opciones del simulacro antes de continuar</p>
+    
+    <div class="form-group">
+      <label for="institucion-select">Institución:</label>
+      <select id="institucion-select" required>
+        <option value="">-- Selecciona una institución --</option>
+        <!-- Opciones cargadas dinámicamente desde Supabase -->
+      </select>
+    </div>
+    
+    <div class="form-group">
+      <label for="version-simulacro">Versión del simulacro:</label>
+      <input 
+        type="text" 
+        id="version-simulacro" 
+        placeholder="Ej: v2025-01, enero-2025"
+        required
+      />
+    </div>
+    
+    <div class="info-box">
+      <strong>📝 Nota:</strong> Al confirmar, se guardarán las 30 preguntas de este simulacro 
+      en la base de datos para evitar repetirlas en futuras versiones.
+    </div>
+    
+    <button class="btn btn-primario" onclick="guardarPreguntasAdmin()">
+      Confirmar y Guardar Preguntas
+    </button>
+    
+    <button class="btn btn-secundario" onclick="continuarSinGuardar()">
+      Continuar sin Guardar (Testing)
+    </button>
+  </div>
+</div>
+```
+
+### Función para Guardar Preguntas
+```javascript
+async function guardarPreguntasAdmin() {
+  const institucionId = document.getElementById('institucion-select').value;
+  const versionSimulacro = document.getElementById('version-simulacro').value.trim();
+  
+  if (!institucionId || !versionSimulacro) {
+    alert('Por favor completa todos los campos');
+    return;
+  }
+  
+  console.log('💾 Guardando preguntas en base de datos...');
+  
+  // Preparar array de preguntas para insertar
+  const preguntasParaGuardar = bancoPreguntas.map(p => ({
+    institucion_id: institucionId,
+    pregunta: p.pregunta,
+    tema: p.tema,
+    componente: p.componente,
+    competencia: p.competencia,
+    version_simulacro: versionSimulacro
+  }));
+  
+  try {
+    const { data, error } = await supabaseClient
+      .from('preguntas_usadas')
+      .insert(preguntasParaGuardar);
+    
+    if (error) throw error;
+    
+    console.log('✅ Preguntas guardadas exitosamente');
+    alert(`✅ ${bancoPreguntas.length} preguntas guardadas para la institución seleccionada.\n\nVersión: ${versionSimulacro}`);
+    
+    // Cerrar modal y continuar
+    document.getElementById('modal-admin').style.display = 'none';
+    mostrarInstrucciones();
+    
+  } catch (error) {
+    console.error('❌ Error al guardar preguntas:', error);
+    alert('Error al guardar preguntas. Revisa la consola para más detalles.');
+  }
+}
+
+function continuarSinGuardar() {
+  console.log('⚠️ Continuando sin guardar preguntas (modo testing)');
+  document.getElementById('modal-admin').style.display = 'none';
+  mostrarInstrucciones();
+}
+
+async function mostrarModalAdmin() {
+  // Cargar instituciones activas desde Supabase
+  const { data: instituciones, error } = await supabaseClient
+    .from('instituciones')
+    .select('id, nombre')
+    .eq('activo', true)
+    .order('nombre');
+  
+  if (error) {
+    console.error('Error al cargar instituciones:', error);
+    return;
+  }
+  
+  // Llenar el select con las instituciones
+  const select = document.getElementById('institucion-select');
+  select.innerHTML = '<option value="">-- Selecciona una institución --</option>';
+  
+  instituciones.forEach(inst => {
+    const option = document.createElement('option');
+    option.value = inst.id;
+    option.textContent = inst.nombre;
+    select.appendChild(option);
+  });
+  
+  // Generar versión automática basada en fecha
+  const fecha = new Date();
+  const mesAnio = `${fecha.getFullYear()}-${String(fecha.getMonth() + 1).padStart(2, '0')}`;
+  document.getElementById('version-simulacro').value = `v${mesAnio}`;
+  
+  // Mostrar modal
+  document.getElementById('modal-admin').style.display = 'flex';
+}
+```
+
+### Estructura Completa del Artefacto
 ```html
 <!DOCTYPE html>
 <html lang="es">
@@ -249,7 +521,7 @@ Crea un **artefacto HTML completo** con las siguientes características:
       background: white;
       padding: 2.5rem;
       border-radius: 12px;
-      max-width: 450px;
+      max-width: 500px;
       width: 90%;
       box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
       animation: slideUp 0.4s ease;
@@ -272,6 +544,16 @@ Crea un **artefacto HTML completo** con las siguientes características:
       line-height: 1.6;
     }
     
+    .info-box {
+      background: #eff6ff;
+      border-left: 4px solid #2563eb;
+      padding: 1rem;
+      margin-top: 1rem;
+      border-radius: 4px;
+      font-size: 0.9rem;
+      color: #1e40af;
+    }
+    
     /* ============================================ */
     /* FORMULARIOS */
     /* ============================================ */
@@ -287,7 +569,8 @@ Crea un **artefacto HTML completo** con las siguientes características:
       font-weight: 600;
     }
     
-    .form-group input {
+    .form-group input,
+    .form-group select {
       width: 100%;
       padding: 0.75rem;
       border: 2px solid #e0e0e0;
@@ -296,7 +579,8 @@ Crea un **artefacto HTML completo** con las siguientes características:
       transition: border-color 0.3s;
     }
     
-    .form-group input:focus {
+    .form-group input:focus,
+    .form-group select:focus {
       outline: none;
       border-color: #667eea;
     }
@@ -314,12 +598,13 @@ Crea un **artefacto HTML completo** con las siguientes características:
       cursor: pointer;
       transition: all 0.3s;
       text-align: center;
+      width: 100%;
+      margin-top: 0.5rem;
     }
     
     .btn-primario {
       background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
       color: white;
-      width: 100%;
     }
     
     .btn-primario:hover {
@@ -374,417 +659,418 @@ Crea un **artefacto HTML completo** con las siguientes características:
       align-items: center;
       gap: 0.5rem;
     }
-    
+
     /* ============================================ */
     /* CONTENEDOR PRINCIPAL DEL TEST */
     /* ============================================ */
-    
+
     .contenedor-test {
-      background: white;
-      width: 95%;
-      max-width: 1200px;
-      min-height: 90vh;
-      border-radius: 12px;
-      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
-      overflow: hidden;
-      display: none;
+        background: white;
+        width: 95%;
+        max-width: 1200px;
+        min-height: 90vh;
+        border-radius: 12px;
+        box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+        overflow: hidden;
+        display: none;
     }
-    
+
     .header-test {
-      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-      color: white;
-      padding: 1.5rem;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      flex-wrap: wrap;
-      gap: 1rem;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        padding: 1.5rem;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 1rem;
     }
-    
+
     .header-test h1 {
-      font-size: 1.5rem;
+        font-size: 1.5rem;
     }
-    
+
     .info-estudiante {
-      display: flex;
-      gap: 2rem;
-      flex-wrap: wrap;
+        display: flex;
+        gap: 2rem;
+        flex-wrap: wrap;
     }
-    
+
     .info-estudiante span {
-      display: flex;
-      align-items: center;
-      gap: 0.5rem;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
     }
-    
+
     /* ============================================ */
     /* INSTRUCCIONES */
     /* ============================================ */
-    
+
     .contenedor-instrucciones {
-      background: white;
-      width: 95%;
-      max-width: 900px;
-      padding: 3rem;
-      border-radius: 12px;
-      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
-      display: none;
+        background: white;
+        width: 95%;
+        max-width: 900px;
+        padding: 3rem;
+        border-radius: 12px;
+        box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+        display: none;
     }
-    
+
     .contenedor-instrucciones h1 {
-      color: #667eea;
-      margin-bottom: 0.5rem;
+        color: #667eea;
+        margin-bottom: 0.5rem;
     }
-    
+
     .contenedor-instrucciones h2 {
-      color: #333;
-      margin-bottom: 1.5rem;
+        color: #333;
+        margin-bottom: 1.5rem;
     }
-    
+
     .instrucciones-contenido {
-      color: #555;
-      line-height: 1.8;
-      margin-bottom: 2rem;
+        color: #555;
+        line-height: 1.8;
+        margin-bottom: 2rem;
     }
-    
+
     .instrucciones-contenido ul {
-      list-style: none;
-      padding-left: 0;
+        list-style: none;
+        padding-left: 0;
     }
-    
+
     .instrucciones-contenido li {
-      padding: 0.5rem 0;
-      padding-left: 1.5rem;
-      position: relative;
+        padding: 0.5rem 0;
+        padding-left: 1.5rem;
+        position: relative;
     }
-    
+
     .instrucciones-contenido li:before {
-      content: "✓";
-      position: absolute;
-      left: 0;
-      color: #667eea;
-      font-weight: bold;
+        content: "✓";
+        position: absolute;
+        left: 0;
+        color: #667eea;
+        font-weight: bold;
     }
-    
+
     .competencias {
-      background: #f5f5f5;
-      padding: 1.5rem;
-      border-radius: 8px;
-      margin-top: 1.5rem;
+        background: #f5f5f5;
+        padding: 1.5rem;
+        border-radius: 8px;
+        margin-top: 1.5rem;
     }
-    
+
     .competencias h3 {
-      color: #333;
-      margin-bottom: 1rem;
+        color: #333;
+        margin-bottom: 1rem;
     }
-    
+
     /* ============================================ */
     /* BARRA DE PROGRESO */
     /* ============================================ */
-    
+
     .progreso {
-      padding: 1.5rem;
-      background: #f9f9f9;
-      border-bottom: 1px solid #e0e0e0;
+        padding: 1.5rem;
+        background: #f9f9f9;
+        border-bottom: 1px solid #e0e0e0;
     }
-    
+
     .progreso-info {
-      display: flex;
-      justify-content: space-between;
-      margin-bottom: 0.75rem;
-      font-weight: 600;
-      color: #555;
+        display: flex;
+        justify-content: space-between;
+        margin-bottom: 0.75rem;
+        font-weight: 600;
+        color: #555;
     }
-    
+
     .barra-progreso {
-      width: 100%;
-      height: 8px;
-      background: #e0e0e0;
-      border-radius: 10px;
-      overflow: hidden;
+        width: 100%;
+        height: 8px;
+        background: #e0e0e0;
+        border-radius: 10px;
+        overflow: hidden;
     }
-    
+
     .progreso-actual {
-      height: 100%;
-      background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
-      transition: width 0.3s ease;
-      border-radius: 10px;
+        height: 100%;
+        background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
+        transition: width 0.3s ease;
+        border-radius: 10px;
     }
-    
+
     /* ============================================ */
     /* PREGUNTA */
     /* ============================================ */
-    
+
     .pregunta-contenedor {
-      padding: 2rem;
-      max-width: 900px;
-      margin: 0 auto;
+        padding: 2rem;
+        max-width: 900px;
+        margin: 0 auto;
     }
-    
+
     .pregunta-header {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      margin-bottom: 1.5rem;
-      flex-wrap: wrap;
-      gap: 1rem;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 1.5rem;
+        flex-wrap: wrap;
+        gap: 1rem;
     }
-    
+
     .numero-pregunta {
-      font-size: 1.25rem;
-      font-weight: bold;
-      color: #667eea;
+        font-size: 1.25rem;
+        font-weight: bold;
+        color: #667eea;
     }
-    
+
     .etiqueta-competencia {
-      background: #e8eaf6;
-      color: #667eea;
-      padding: 0.4rem 1rem;
-      border-radius: 20px;
-      font-size: 0.85rem;
-      font-weight: 600;
+        background: #e8eaf6;
+        color: #667eea;
+        padding: 0.4rem 1rem;
+        border-radius: 20px;
+        font-size: 0.85rem;
+        font-weight: 600;
     }
-    
+
     .contexto {
-      background: #f5f5f5;
-      padding: 1.5rem;
-      border-radius: 8px;
-      margin-bottom: 1.5rem;
-      line-height: 1.8;
-      color: #333;
+        background: #f5f5f5;
+        padding: 1.5rem;
+        border-radius: 8px;
+        margin-bottom: 1.5rem;
+        line-height: 1.8;
+        color: #333;
     }
-    
+
     .contenedor-grafico {
-      margin: 1.5rem 0;
-      padding: 1rem;
-      background: #fafafa;
-      border-radius: 8px;
-      border: 1px solid #e0e0e0;
+        margin: 1.5rem 0;
+        padding: 1rem;
+        background: #fafafa;
+        border-radius: 8px;
+        border: 1px solid #e0e0e0;
     }
-    
+
     .contenedor-grafico canvas {
-      max-height: 400px;
+        max-height: 400px;
     }
-    
+
     .pregunta-texto {
-      font-size: 1.1rem;
-      font-weight: 600;
-      color: #333;
-      margin: 1.5rem 0;
-      line-height: 1.6;
+        font-size: 1.1rem;
+        font-weight: 600;
+        color: #333;
+        margin: 1.5rem 0;
+        line-height: 1.6;
     }
-    
+
     /* ============================================ */
     /* OPCIONES DE RESPUESTA */
     /* ============================================ */
-    
+
     .opciones {
-      display: flex;
-      flex-direction: column;
-      gap: 1rem;
+        display: flex;
+        flex-direction: column;
+        gap: 1rem;
     }
-    
+
     .opcion {
-      display: flex;
-      align-items: flex-start;
-      padding: 1rem 1.25rem;
-      border: 2px solid #e0e0e0;
-      border-radius: 8px;
-      cursor: pointer;
-      transition: all 0.3s;
-      background: white;
+        display: flex;
+        align-items: flex-start;
+        padding: 1rem 1.25rem;
+        border: 2px solid #e0e0e0;
+        border-radius: 8px;
+        cursor: pointer;
+        transition: all 0.3s;
+        background: white;
     }
-    
+
     .opcion:hover {
-      border-color: #667eea;
-      background: #f5f7ff;
+        border-color: #667eea;
+        background: #f5f7ff;
     }
-    
+
     .opcion.seleccionada {
-      border-color: #667eea;
-      background: #e8eaf6;
+        border-color: #667eea;
+        background: #e8eaf6;
     }
-    
+
     .opcion input[type="radio"] {
-      display: none;
+        display: none;
     }
-    
+
     .letra-opcion {
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      width: 32px;
-      height: 32px;
-      border-radius: 50%;
-      background: #f5f5f5;
-      color: #666;
-      font-weight: bold;
-      margin-right: 1rem;
-      flex-shrink: 0;
-      transition: all 0.3s;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 32px;
+        height: 32px;
+        border-radius: 50%;
+        background: #f5f5f5;
+        color: #666;
+        font-weight: bold;
+        margin-right: 1rem;
+        flex-shrink: 0;
+        transition: all 0.3s;
     }
-    
+
     .opcion.seleccionada .letra-opcion {
-      background: #667eea;
-      color: white;
+        background: #667eea;
+        color: white;
     }
-    
+
     .texto-opcion {
-      flex: 1;
-      line-height: 1.6;
-      color: #333;
+        flex: 1;
+        line-height: 1.6;
+        color: #333;
     }
-    
+
     /* ============================================ */
     /* NAVEGACIÓN */
     /* ============================================ */
-    
+
     .navegacion {
-      padding: 1.5rem 2rem;
-      border-top: 1px solid #e0e0e0;
-      display: flex;
-      justify-content: space-between;
-      gap: 1rem;
-      flex-wrap: wrap;
+        padding: 1.5rem 2rem;
+        border-top: 1px solid #e0e0e0;
+        display: flex;
+        justify-content: space-between;
+        gap: 1rem;
+        flex-wrap: wrap;
     }
-    
+
     .navegacion button {
-      padding: 0.75rem 2rem;
+        padding: 0.75rem 2rem;
     }
-    
+
     /* ============================================ */
     /* MAPA DE PREGUNTAS */
     /* ============================================ */
-    
+
     .mapa-preguntas {
-      padding: 1.5rem 2rem;
-      background: #fafafa;
-      border-top: 1px solid #e0e0e0;
+        padding: 1.5rem 2rem;
+        background: #fafafa;
+        border-top: 1px solid #e0e0e0;
     }
-    
+
     .mapa-preguntas h4 {
-      margin-bottom: 1rem;
-      color: #555;
+        margin-bottom: 1rem;
+        color: #555;
     }
-    
+
     .mapa-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(50px, 1fr));
-      gap: 0.5rem;
-      margin-bottom: 1rem;
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(50px, 1fr));
+        gap: 0.5rem;
+        margin-bottom: 1rem;
     }
-    
+
     .btn-mapa {
-      width: 50px;
-      height: 50px;
-      border: 2px solid #e0e0e0;
-      background: white;
-      border-radius: 8px;
-      cursor: pointer;
-      font-weight: 600;
-      transition: all 0.3s;
+        width: 50px;
+        height: 50px;
+        border: 2px solid #e0e0e0;
+        background: white;
+        border-radius: 8px;
+        cursor: pointer;
+        font-weight: 600;
+        transition: all 0.3s;
     }
-    
+
     .btn-mapa:hover {
-      border-color: #667eea;
-      transform: scale(1.05);
+        border-color: #667eea;
+        transform: scale(1.05);
     }
-    
+
     .btn-mapa.respondida {
-      background: #4caf50;
-      color: white;
-      border-color: #4caf50;
+        background: #4caf50;
+        color: white;
+        border-color: #4caf50;
     }
-    
+
     .btn-mapa.actual {
-      background: #667eea;
-      color: white;
-      border-color: #667eea;
+        background: #667eea;
+        color: white;
+        border-color: #667eea;
     }
-    
+
     .leyenda-mapa {
-      display: flex;
-      gap: 2rem;
-      flex-wrap: wrap;
-      font-size: 0.9rem;
-      color: #666;
+        display: flex;
+        gap: 2rem;
+        flex-wrap: wrap;
+        font-size: 0.9rem;
+        color: #666;
     }
-    
+
     .leyenda-mapa span {
-      display: flex;
-      align-items: center;
-      gap: 0.5rem;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
     }
-    
+
     .indicador {
-      width: 20px;
-      height: 20px;
-      border-radius: 4px;
-      border: 2px solid #e0e0e0;
+        width: 20px;
+        height: 20px;
+        border-radius: 4px;
+        border: 2px solid #e0e0e0;
     }
-    
+
     .indicador.respondida {
-      background: #4caf50;
-      border-color: #4caf50;
+        background: #4caf50;
+        border-color: #4caf50;
     }
-    
+
     .indicador.pendiente {
-      background: white;
+        background: white;
     }
-    
+
     /* ============================================ */
     /* MODAL DE ÉXITO */
     /* ============================================ */
-    
+
     .exito-icono {
-      font-size: 4rem;
-      text-align: center;
-      margin-bottom: 1rem;
+        font-size: 4rem;
+        text-align: center;
+        margin-bottom: 1rem;
     }
-    
+
     .modal-acciones {
-      display: flex;
-      gap: 1rem;
-      margin-top: 1.5rem;
+        display: flex;
+        gap: 1rem;
+        margin-top: 1.5rem;
     }
-    
+
     .modal-acciones button {
-      flex: 1;
+        flex: 1;
     }
-    
+
     .resumen-respuestas {
-      background: #f5f5f5;
-      padding: 1rem;
-      border-radius: 8px;
-      margin: 1rem 0;
+        background: #f5f5f5;
+        padding: 1rem;
+        border-radius: 8px;
+        margin: 1rem 0;
     }
-    
+
     .resumen-respuestas p {
-      margin: 0.5rem 0;
+        margin: 0.5rem 0;
     }
-    
+
     /* ============================================ */
     /* RESPONSIVE */
     /* ============================================ */
-    
+
     @media (max-width: 768px) {
-      .header-test {
-        flex-direction: column;
-        align-items: flex-start;
-      }
-      
-      .mapa-grid {
-        grid-template-columns: repeat(auto-fill, minmax(45px, 1fr));
-      }
-      
-      .navegacion {
-        flex-direction: column;
-      }
-      
-      .navegacion button {
-        width: 100%;
-      }
+        .header-test {
+            flex-direction: column;
+            align-items: flex-start;
+        }
+
+        .mapa-grid {
+            grid-template-columns: repeat(auto-fill, minmax(45px, 1fr));
+        }
+
+        .navegacion {
+            flex-direction: column;
+        }
+
+        .navegacion button {
+            width: 100%;
+        }
     }
+    
   </style>
 </head>
 <body>
@@ -826,86 +1112,125 @@ Crea un **artefacto HTML completo** con las siguientes características:
   </div>
 
   <!-- ============================================ -->
+  <!-- MODAL ADMINISTRADOR -->
+  <!-- ============================================ -->
+  <div id="modal-admin" class="modal-overlay" style="display:none;">
+    <div class="modal-contenido">
+      <h2>🔐 Modo Administrador</h2>
+      <p>Estás autenticado como administrador. Configura el simulacro:</p>
+      
+      <div class="form-group">
+        <label for="institucion-select">Selecciona la institución:</label>
+        <select id="institucion-select">
+          <option value="">-- Selecciona una institución --</option>
+        </select>
+      </div>
+      
+      <div class="form-group">
+        <label for="version-simulacro">Versión del simulacro:</label>
+        <input 
+          type="text" 
+          id="version-simulacro" 
+          placeholder="Ej: v2025-01, v2025-02"
+        />
+      </div>
+      
+      <div class="info-box">
+        <strong>📝 Nota:</strong> Al confirmar, se guardarán las 30 preguntas de este simulacro 
+        en la base de datos para evitar repetirlas en futuras versiones.
+      </div>
+      
+      <button class="btn btn-primario" onclick="guardarPreguntasAdmin()">
+        Confirmar y Guardar Preguntas
+      </button>
+      
+      <button class="btn btn-secundario" onclick="continuarSinGuardar()">
+        Continuar sin Guardar
+      </button>
+    </div>
+  </div>
+
+  <!-- ============================================ -->
   <!-- PANTALLA DE INSTRUCCIONES -->
   <!-- ============================================ -->
   <div id="instrucciones" class="contenedor-instrucciones">
-    <h1>¡Bienvenido/a, <span id="nombre-estudiante"></span>!</h1>
-    <h2>Instrucciones del Simulacro de Matemáticas</h2>
-    
-    <div class="instrucciones-contenido">
-      <p><strong>Esta prueba contiene 30 preguntas de selección múltiple con única respuesta.</strong></p>
-      
-      <ul>
-        <li>Lee cuidadosamente cada pregunta y su contexto</li>
-        <li>Algunas preguntas incluyen gráficos, tablas o diagramas</li>
-        <li>Selecciona UNA opción de respuesta (A, B, C o D)</li>
-        <li>Puedes navegar entre preguntas usando los botones</li>
-        <li>El mapa inferior te permite ir directamente a cualquier pregunta</li>
-        <li>Asegúrate de responder todas las preguntas antes de finalizar</li>
-        <li><strong>Una vez envíes tus respuestas, no podrás modificarlas</strong></li>
-      </ul>
-      
-      <div class="competencias">
-        <h3>📊 Competencias evaluadas:</h3>
-        <ul>
-          <li><strong>Comunicación, representación y modelación:</strong> Interpretación de información matemática</li>
-          <li><strong>Planteamiento y resolución de problemas:</strong> Aplicación de conceptos a situaciones</li>
-          <li><strong>Razonamiento y argumentación:</strong> Justificación de procedimientos</li>
-        </ul>
+      <h1>¡Bienvenido/a, <span id="nombre-estudiante"></span>!</h1>
+      <h2>Instrucciones del Simulacro de Matemáticas</h2>
+
+      <div class="instrucciones-contenido">
+          <p><strong>Esta prueba contiene 30 preguntas de selección múltiple con única respuesta.</strong></p>
+
+          <ul>
+              <li>Lee cuidadosamente cada pregunta y su contexto</li>
+              <li>Algunas preguntas incluyen gráficos, tablas o diagramas</li>
+              <li>Selecciona UNA opción de respuesta (A, B, C o D)</li>
+              <li>Puedes navegar entre preguntas usando los botones</li>
+              <li>El mapa inferior te permite ir directamente a cualquier pregunta</li>
+              <li>Asegúrate de responder todas las preguntas antes de finalizar</li>
+              <li><strong>Una vez envíes tus respuestas, no podrás modificarlas</strong></li>
+          </ul>
+
+          <div class="competencias">
+              <h3>📊 Competencias evaluadas:</h3>
+              <ul>
+                  <li><strong>Comunicación, representación y modelación:</strong> Interpretación de información matemática</li>
+                  <li><strong>Planteamiento y resolución de problemas:</strong> Aplicación de conceptos a situaciones</li>
+                  <li><strong>Razonamiento y argumentación:</strong> Justificación de procedimientos</li>
+              </ul>
+          </div>
       </div>
-    </div>
-    
-    <button id="btn-comenzar" class="btn btn-primario">🚀 Comenzar Simulacro</button>
+
+      <button id="btn-comenzar" class="btn btn-primario">🚀 Comenzar Simulacro</button>
   </div>
 
   <!-- ============================================ -->
   <!-- CONTENEDOR PRINCIPAL DEL TEST -->
   <!-- ============================================ -->
   <div id="contenedor-test" class="contenedor-test">
-    
-    <!-- Header -->
-    <div class="header-test">
-      <h1>📐 Simulacro ICFES - Matemáticas</h1>
-      <div class="info-estudiante">
-        <span>👤 <strong id="header-nombre"></strong></span>
-        <span>🆔 <strong id="header-documento"></strong></span>
-      </div>
-    </div>
 
-    <!-- Barra de progreso -->
-    <div class="progreso">
-      <div class="progreso-info">
-        <span id="contador-preguntas">Pregunta 1 de 30</span>
-        <span id="contador-respondidas">Respondidas: 0/30</span>
+      <!-- Header -->
+      <div class="header-test">
+          <h1>📐 Simulacro ICFES - Matemáticas</h1>
+          <div class="info-estudiante">
+              <span>👤 <strong id="header-nombre"></strong></span>
+              <span>🆔 <strong id="header-documento"></strong></span>
+          </div>
       </div>
-      <div class="barra-progreso">
-        <div class="progreso-actual" style="width: 0%;"></div>
-      </div>
-    </div>
 
-    <!-- Pregunta actual -->
-    <div id="pregunta-actual" class="pregunta-contenedor">
-      <!-- Se renderiza dinámicamente con JavaScript -->
-    </div>
-
-    <!-- Navegación -->
-    <div class="navegacion">
-      <button id="btn-anterior" class="btn btn-secundario" disabled>← Anterior</button>
-      <button id="btn-siguiente" class="btn btn-primario">Siguiente →</button>
-      <button id="btn-finalizar" class="btn btn-finalizar" style="display:none;">✓ Finalizar Test</button>
-    </div>
-
-    <!-- Mapa de preguntas -->
-    <div class="mapa-preguntas">
-      <h4>Navegación rápida:</h4>
-      <div id="mapa-botones" class="mapa-grid">
-        <!-- Botones 1-30 generados dinámicamente -->
+      <!-- Barra de progreso -->
+      <div class="progreso">
+          <div class="progreso-info">
+              <span id="contador-preguntas">Pregunta 1 de 30</span>
+              <span id="contador-respondidas">Respondidas: 0/30</span>
+          </div>
+          <div class="barra-progreso">
+              <div class="progreso-actual" style="width: 0%;"></div>
+          </div>
       </div>
-      <div class="leyenda-mapa">
-        <span><span class="indicador respondida"></span> Respondida</span>
-        <span><span class="indicador pendiente"></span> Pendiente</span>
+
+      <!-- Pregunta actual -->
+      <div id="pregunta-actual" class="pregunta-contenedor">
+          <!-- Se renderiza dinámicamente con JavaScript -->
       </div>
-    </div>
+
+      <!-- Navegación -->
+      <div class="navegacion">
+          <button id="btn-anterior" class="btn btn-secundario" disabled>← Anterior</button>
+          <button id="btn-siguiente" class="btn btn-primario">Siguiente →</button>
+          <button id="btn-finalizar" class="btn btn-finalizar" style="display:none;">✓ Finalizar Test</button>
+      </div>
+
+      <!-- Mapa de preguntas -->
+      <div class="mapa-preguntas">
+          <h4>Navegación rápida:</h4>
+          <div id="mapa-botones" class="mapa-grid">
+              <!-- Botones 1-30 generados dinámicamente -->
+          </div>
+          <div class="leyenda-mapa">
+              <span><span class="indicador respondida"></span> Respondida</span>
+              <span><span class="indicador pendiente"></span> Pendiente</span>
+          </div>
+      </div>
 
   </div>
 
@@ -913,36 +1238,36 @@ Crea un **artefacto HTML completo** con las siguientes características:
   <!-- MODAL DE CONFIRMACIÓN -->
   <!-- ============================================ -->
   <div id="modal-confirmacion" class="modal-overlay" style="display:none;">
-    <div class="modal-contenido">
-      <h2>⚠️ ¿Finalizar el simulacro?</h2>
-      
-      <div class="resumen-respuestas">
-        <p>Has respondido <strong id="total-respondidas">0</strong> de <strong>30</strong> preguntas.</p>
-        <p id="advertencia-pendientes" style="display:none; color: #d32f2f; font-weight: 600;">
-          ⚠️ Tienes <strong id="num-pendientes"></strong> preguntas sin responder.
-        </p>
+      <div class="modal-contenido">
+          <h2>⚠️ ¿Finalizar el simulacro?</h2>
+
+          <div class="resumen-respuestas">
+              <p>Has respondido <strong id="total-respondidas">0</strong> de <strong>30</strong> preguntas.</p>
+              <p id="advertencia-pendientes" style="display:none; color: #d32f2f; font-weight: 600;">
+                  ⚠️ Tienes <strong id="num-pendientes"></strong> preguntas sin responder.
+              </p>
+          </div>
+
+          <p style="margin-top: 1rem;">Una vez envíes, no podrás modificar tus respuestas.</p>
+
+          <div class="modal-acciones">
+              <button id="btn-continuar" class="btn btn-secundario">← Revisar respuestas</button>
+              <button id="btn-confirmar-envio" class="btn btn-finalizar">Sí, enviar respuestas →</button>
+          </div>
       </div>
-      
-      <p style="margin-top: 1rem;">Una vez envíes, no podrás modificar tus respuestas.</p>
-      
-      <div class="modal-acciones">
-        <button id="btn-continuar" class="btn btn-secundario">← Revisar respuestas</button>
-        <button id="btn-confirmar-envio" class="btn btn-finalizar">Sí, enviar respuestas →</button>
-      </div>
-    </div>
   </div>
 
   <!-- ============================================ -->
   <!-- MODAL DE ÉXITO -->
   <!-- ============================================ -->
   <div id="modal-exito" class="modal-overlay" style="display:none;">
-    <div class="modal-contenido">
-      <div class="exito-icono">✅</div>
-      <h2>¡Respuestas enviadas correctamente!</h2>
-      <p>Gracias por completar el simulacro, <strong id="exito-nombre"></strong>.</p>
-      <p>Tus resultados serán procesados y estarán disponibles próximamente.</p>
-      <button class="btn btn-primario" onclick="location.reload()">Cerrar</button>
-    </div>
+      <div class="modal-contenido">
+          <div class="exito-icono">✅</div>
+          <h2>¡Respuestas enviadas correctamente!</h2>
+          <p>Gracias por completar el simulacro, <strong id="exito-nombre"></strong>.</p>
+          <p>Tus resultados serán procesados y estarán disponibles próximamente.</p>
+          <button class="btn btn-primario" onclick="location.reload()">Cerrar</button>
+      </div>
   </div>
 
   <script>
@@ -961,12 +1286,14 @@ Crea un **artefacto HTML completo** con las siguientes características:
     // ============================================
     let estudianteActual = {
       documento: null,
-      nombre: ''
+      nombre: '',
+      esAdmin: false,
+      institucionId: null
     };
 
     let estadoTest = {
       preguntaActual: 0,
-      respuestas: {}, // { numeroPregunta: 'A' }
+      respuestas: {},
       horaInicio: null
     };
 
@@ -974,30 +1301,30 @@ Crea un **artefacto HTML completo** con las siguientes características:
     // BANCO DE PREGUNTAS (30 preguntas)
     // ============================================
     const bancoPreguntas = [
-      // AQUÍ SE GENERAN LAS 30 PREGUNTAS
-      // Ejemplo de estructura:
-      /*
-      {
-        numero: 1,
-        competencia: "Razonamiento cuantitativo",
-        componente: "Numérico-variacional",
-        tema: "Proporcionalidad",
-        dificultad: "media",
-        contexto: "Una empresa de...",
-        tiene_grafico: true,
-        tipo_grafico: "tabla",
-        datos_grafico: {...},
-        pregunta: "¿Cuál es...?",
-        opciones: {
-          A: "Opción A",
-          B: "Opción B",
-          C: "Opción C",
-          D: "Opción D"
-        },
-        respuesta_correcta: "B",
-        justificacion: "Porque..."
-      }
-      */
+      // AQUÍ GENERAS LAS 30 PREGUNTAS ÚNICAS
+        // Ejemplo de estructura:
+        /*
+        {
+          numero: 1,
+          competencia: "Razonamiento cuantitativo",
+          componente: "Numérico-variacional",
+          tema: "Proporcionalidad",
+          dificultad: "media",
+          contexto: "Una empresa de...",
+          tiene_grafico: true,
+          tipo_grafico: "tabla",
+          datos_grafico: {...},
+          pregunta: "¿Cuál es...?",
+          opciones: {
+            A: "Opción A",
+            B: "Opción B",
+            C: "Opción C",
+            D: "Opción D"
+          },
+          respuesta_correcta: "B",
+          justificacion: "Porque..."
+        }
+        */
     ];
 
     // ============================================
@@ -1010,42 +1337,144 @@ Crea un **artefacto HTML completo** con las siguientes características:
       const errorDiv = document.getElementById('error-autenticacion');
       const loadingDiv = document.getElementById('loading-autenticacion');
       
-      // Mostrar loading
       errorDiv.style.display = 'none';
       loadingDiv.style.display = 'flex';
 
       try {
-        // Consultar tabla estudiantes en Supabase
+        // Consultar estudiante con campos admin e institucion_id
         const { data, error } = await supabaseClient
           .from('estudiantes')
-          .select('documento, nombre')
+          .select('documento, nombre, admin, institucion_id')
           .eq('documento', documento)
           .single();
 
         loadingDiv.style.display = 'none';
 
         if (error || !data) {
-          // Documento no encontrado
           errorDiv.style.display = 'flex';
           return;
         }
 
-        // Estudiante encontrado
+        // Guardar datos del estudiante
         estudianteActual.documento = data.documento;
         estudianteActual.nombre = data.nombre;
+        estudianteActual.esAdmin = data.admin || false;
+        estudianteActual.institucionId = data.institucion_id;
 
-        // Ocultar modal, mostrar instrucciones
+        // Ocultar modal de autenticación
         document.getElementById('modal-autenticacion').style.display = 'none';
-        document.getElementById('nombre-estudiante').textContent = estudianteActual.nombre;
-        document.getElementById('instrucciones').style.display = 'flex';
+
+        // Si es admin, mostrar modal de administrador
+        if (estudianteActual.esAdmin) {
+          await mostrarModalAdmin();
+        } else {
+          // Si es estudiante regular, continuar normal
+          mostrarInstrucciones();
+        }
 
       } catch (error) {
         console.error('Error al consultar Supabase:', error);
         loadingDiv.style.display = 'none';
-        errorDiv.innerHTML = '<span>❌</span><span>Error de conexión. Intenta nuevamente.</span>';
+        errorDiv.innerHTML = '<span>❌</span><span>Error de conexión.</span>';
         errorDiv.style.display = 'flex';
       }
     });
+
+    // ============================================
+    // FUNCIONES ADMIN
+    // ============================================
+    async function mostrarModalAdmin() {
+      console.log('🔐 Usuario administrador detectado');
+      
+      // Cargar instituciones activas
+      const { data: instituciones, error } = await supabaseClient
+        .from('instituciones')
+        .select('id, nombre')
+        .eq('activo', true)
+        .order('nombre');
+      
+      if (error) {
+        console.error('Error al cargar instituciones:', error);
+        alert('Error al cargar instituciones');
+        return;
+      }
+      
+      // Llenar select
+      const select = document.getElementById('institucion-select');
+      select.innerHTML = '<option value="">-- Selecciona una institución --</option>';
+      
+      instituciones.forEach(inst => {
+        const option = document.createElement('option');
+        option.value = inst.id;
+        option.textContent = inst.nombre;
+        select.appendChild(option);
+      });
+      
+      // Generar versión automática
+      const fecha = new Date();
+      const version = `v${fecha.getFullYear()}-${String(fecha.getMonth() + 1).padStart(2, '0')}`;
+      document.getElementById('version-simulacro').value = version;
+      
+      // Mostrar modal
+      document.getElementById('modal-admin').style.display = 'flex';
+    }
+
+    async function guardarPreguntasAdmin() {
+      const institucionId = document.getElementById('institucion-select').value;
+      const versionSimulacro = document.getElementById('version-simulacro').value.trim();
+      
+      if (!institucionId) {
+        alert('Por favor selecciona una institución');
+        return;
+      }
+      
+      if (!versionSimulacro) {
+        alert('Por favor ingresa la versión del simulacro');
+        return;
+      }
+      
+      console.log('💾 Guardando preguntas en base de datos...');
+      
+      // Preparar datos
+      const preguntasParaGuardar = bancoPreguntas.map(p => ({
+        institucion_id: institucionId,
+        pregunta: p.pregunta,
+        tema: p.tema,
+        componente: p.componente,
+        competencia: p.competencia,
+        version_simulacro: versionSimulacro
+      }));
+      
+      try {
+        const { data, error } = await supabaseClient
+          .from('preguntas_usadas')
+          .insert(preguntasParaGuardar);
+        
+        if (error) throw error;
+        
+        console.log('✅ Preguntas guardadas exitosamente');
+        alert(`✅ ${bancoPreguntas.length} preguntas guardadas.\n\nInstitución: ${document.getElementById('institucion-select').selectedOptions[0].text}\nVersión: ${versionSimulacro}`);
+        
+        // Cerrar modal y continuar
+        document.getElementById('modal-admin').style.display = 'none';
+        mostrarInstrucciones();
+        
+      } catch (error) {
+        console.error('❌ Error al guardar preguntas:', error);
+        alert('Error al guardar preguntas:\n\n' + error.message);
+      }
+    }
+
+    function continuarSinGuardar() {
+      console.log('⚠️ Continuando sin guardar preguntas');
+      document.getElementById('modal-admin').style.display = 'none';
+      mostrarInstrucciones();
+    }
+
+    function mostrarInstrucciones() {
+      document.getElementById('nombre-estudiante').textContent = estudianteActual.nombre;
+      document.getElementById('instrucciones').style.display = 'flex';
+    }
 
     // ============================================
     // INICIAR TEST
@@ -1053,18 +1482,13 @@ Crea un **artefacto HTML completo** con las siguientes características:
     document.getElementById('btn-comenzar').addEventListener('click', () => {
       estadoTest.horaInicio = new Date();
       
-      // Actualizar header
       document.getElementById('header-nombre').textContent = estudianteActual.nombre;
       document.getElementById('header-documento').textContent = estudianteActual.documento;
 
-      // Ocultar instrucciones, mostrar test
       document.getElementById('instrucciones').style.display = 'none';
       document.getElementById('contenedor-test').style.display = 'block';
 
-      // Generar mapa de navegación
       generarMapaPreguntas();
-
-      // Renderizar primera pregunta
       renderizarPregunta(0);
     });
 
@@ -1072,21 +1496,21 @@ Crea un **artefacto HTML completo** con las siguientes características:
     // RENDERIZAR PREGUNTA
     // ============================================
     function renderizarPregunta(index) {
-      const pregunta = bancoPreguntas[index];
-      const contenedor = document.getElementById('pregunta-actual');
+        const pregunta = bancoPreguntas[index];
+        const contenedor = document.getElementById('pregunta-actual');
 
-      let htmlGrafico = '';
-      if (pregunta.tiene_grafico) {
-        if (pregunta.tipo_grafico === 'tabla') {
-          htmlGrafico = generarTabla(pregunta.datos_grafico);
-        } else {
-          htmlGrafico = `<div class="contenedor-grafico">
+        let htmlGrafico = '';
+        if (pregunta.tiene_grafico) {
+            if (pregunta.tipo_grafico === 'tabla') {
+                htmlGrafico = generarTabla(pregunta.datos_grafico);
+            } else {
+                htmlGrafico = `<div class="contenedor-grafico">
             <canvas id="grafico-pregunta-${pregunta.numero}"></canvas>
           </div>`;
+            }
         }
-      }
 
-      contenedor.innerHTML = `
+        contenedor.innerHTML = `
         <div class="pregunta-header">
           <span class="numero-pregunta">Pregunta ${pregunta.numero}</span>
           <span class="etiqueta-competencia">${pregunta.competencia}</span>
@@ -1114,35 +1538,35 @@ Crea un **artefacto HTML completo** con las siguientes características:
         </div>
       `;
 
-      // Renderizar gráfico si existe (y no es tabla)
-      if (pregunta.tiene_grafico && pregunta.tipo_grafico !== 'tabla') {
-        setTimeout(() => renderizarGrafico(pregunta), 100);
-      }
+        // Renderizar gráfico si existe (y no es tabla)
+        if (pregunta.tiene_grafico && pregunta.tipo_grafico !== 'tabla') {
+            setTimeout(() => renderizarGrafico(pregunta), 100);
+        }
 
-      // Event listeners para opciones
-      document.querySelectorAll(`input[name="respuesta-${pregunta.numero}"]`).forEach(input => {
-        input.addEventListener('change', (e) => {
-          estadoTest.respuestas[pregunta.numero] = e.target.value;
-          
-          // Actualizar visualmente
-          document.querySelectorAll('.opcion').forEach(op => op.classList.remove('seleccionada'));
-          e.target.closest('.opcion').classList.add('seleccionada');
-          
-          actualizarEstado();
+        // Event listeners para opciones
+        document.querySelectorAll(`input[name="respuesta-${pregunta.numero}"]`).forEach(input => {
+            input.addEventListener('change', (e) => {
+                estadoTest.respuestas[pregunta.numero] = e.target.value;
+
+                // Actualizar visualmente
+                document.querySelectorAll('.opcion').forEach(op => op.classList.remove('seleccionada'));
+                e.target.closest('.opcion').classList.add('seleccionada');
+
+                actualizarEstado();
+            });
         });
-      });
 
-      // Actualizar navegación
-      actualizarNavegacion(index);
-      actualizarEstado();
+        // Actualizar navegación
+        actualizarNavegacion(index);
+        actualizarEstado();
     }
 
     // ============================================
     // GENERAR TABLA HTML
     // ============================================
     function generarTabla(datos) {
-      // datos = { headers: [...], rows: [[...], [...]] }
-      return `
+        // datos = { headers: [...], rows: [[...], [...]] }
+        return `
         <div class="contenedor-grafico">
           <table style="width: 100%; border-collapse: collapse;">
             <thead>
@@ -1166,165 +1590,173 @@ Crea un **artefacto HTML completo** con las siguientes características:
     // RENDERIZAR GRÁFICOS (Chart.js)
     // ============================================
     function renderizarGrafico(pregunta) {
-      const ctx = document.getElementById(`grafico-pregunta-${pregunta.numero}`);
-      if (!ctx) return;
+        const ctx = document.getElementById(`grafico-pregunta-${pregunta.numero}`);
+        if (!ctx) return;
 
-      // Crear gráfico según tipo
-      new Chart(ctx.getContext('2d'), pregunta.configuracion_grafico);
+        // Crear gráfico según tipo
+        new Chart(ctx.getContext('2d'), pregunta.configuracion_grafico);
     }
 
     // ============================================
     // NAVEGACIÓN
     // ============================================
     document.getElementById('btn-siguiente').addEventListener('click', () => {
-      if (estadoTest.preguntaActual < bancoPreguntas.length - 1) {
-        estadoTest.preguntaActual++;
-        renderizarPregunta(estadoTest.preguntaActual);
-      }
+        if (estadoTest.preguntaActual < bancoPreguntas.length - 1) {
+            estadoTest.preguntaActual++;
+            renderizarPregunta(estadoTest.preguntaActual);
+        }
     });
 
     document.getElementById('btn-anterior').addEventListener('click', () => {
-      if (estadoTest.preguntaActual > 0) {
-        estadoTest.preguntaActual--;
-        renderizarPregunta(estadoTest.preguntaActual);
-      }
+        if (estadoTest.preguntaActual > 0) {
+            estadoTest.preguntaActual--;
+            renderizarPregunta(estadoTest.preguntaActual);
+        }
     });
 
     // ============================================
     // FINALIZAR TEST
     // ============================================
     document.getElementById('btn-finalizar').addEventListener('click', () => {
-      const respondidas = Object.keys(estadoTest.respuestas).length;
-      const pendientes = bancoPreguntas.length - respondidas;
+        const respondidas = Object.keys(estadoTest.respuestas).length;
+        const pendientes = bancoPreguntas.length - respondidas;
 
-      document.getElementById('total-respondidas').textContent = respondidas;
-      
-      if (pendientes > 0) {
-        document.getElementById('num-pendientes').textContent = pendientes;
-        document.getElementById('advertencia-pendientes').style.display = 'block';
-      } else {
-        document.getElementById('advertencia-pendientes').style.display = 'none';
-      }
+        document.getElementById('total-respondidas').textContent = respondidas;
 
-      document.getElementById('modal-confirmacion').style.display = 'flex';
+        if (pendientes > 0) {
+            document.getElementById('num-pendientes').textContent = pendientes;
+            document.getElementById('advertencia-pendientes').style.display = 'block';
+        } else {
+            document.getElementById('advertencia-pendientes').style.display = 'none';
+        }
+
+        document.getElementById('modal-confirmacion').style.display = 'flex';
     });
 
     document.getElementById('btn-continuar').addEventListener('click', () => {
-      document.getElementById('modal-confirmacion').style.display = 'none';
+        document.getElementById('modal-confirmacion').style.display = 'none';
     });
 
     document.getElementById('btn-confirmar-envio').addEventListener('click', async () => {
-      await enviarRespuestas();
+        await enviarRespuestas();
     });
 
     // ============================================
     // ENVÍO A SUPABASE
     // ============================================
     async function enviarRespuestas() {
-        // Preparar objeto de respuestas SIMPLE
-        const objetoRespuestas = {};
-        bancoPreguntas.forEach(pregunta => {
-            objetoRespuestas[pregunta.numero] = estadoTest.respuestas[pregunta.numero] || 'SIN_RESPUESTA';
-        });
+      // Verificar que TODAS las preguntas estén respondidas
+      const respondidas = Object.keys(estadoTest.respuestas).length;
+      const totalPreguntas = bancoPreguntas.length;
+      
+      if (respondidas < totalPreguntas) {
+        const faltantes = totalPreguntas - respondidas;
+        alert(`⚠️ Debes responder TODAS las preguntas.\n\nFaltan ${faltantes} pregunta(s) por responder.`);
+        return;
+      }
 
-        // Preparar objeto de respuestas DETALLADAS con análisis
-        const respuestasDetalladas = {};
-        bancoPreguntas.forEach(pregunta => {
-            const respuestaEstudiante = estadoTest.respuestas[pregunta.numero] || 'SIN_RESPUESTA';
-            const esCorrecta = respuestaEstudiante === pregunta.respuesta_correcta;
+      // Preparar respuestas
+      const objetoRespuestas = {};
+      const respuestasDetalladas = {};
+      
+      bancoPreguntas.forEach(pregunta => {
+        const respuestaEstudiante = estadoTest.respuestas[pregunta.numero];
+        const esCorrecta = respuestaEstudiante === pregunta.respuesta_correcta;
 
-            respuestasDetalladas[pregunta.numero] = {
-                respuesta: respuestaEstudiante,
-                competencia: pregunta.competencia,
-                componente: pregunta.componente,
-                tema: pregunta.tema,
-                acierto: esCorrecta,
-                respuesta_correcta: pregunta.respuesta_correcta
-            };
-        });
-
-        // Preparar registro único
-        const registro = {
-            documento_estudiante: estudianteActual.documento,
-            respuestas: objetoRespuestas,
-            respuestas_detalladas: respuestasDetalladas
+        objetoRespuestas[pregunta.numero] = respuestaEstudiante;
+        
+        respuestasDetalladas[pregunta.numero] = {
+          respuesta: respuestaEstudiante,
+          competencia: pregunta.competencia,
+          componente: pregunta.componente,
+          tema: pregunta.tema,
+          acierto: esCorrecta,
+          respuesta_correcta: pregunta.respuesta_correcta
         };
+      });
 
-        try {
-            const { data, error } = await supabaseClient
-                    .from('respuestas_estudiantes')
-                    .insert([registro]);
+      // Preparar registro
+      const registro = {
+        documento_estudiante: estudianteActual.documento
+        respuestas: objetoRespuestas,
+        respuestas_detalladas: respuestasDetalladas
+      };
 
-            if (error) throw error;
+      try {
+        const { data, error } = await supabaseClient
+          .from('respuestas_estudiantes')
+          .insert([registro]);
 
-            // Mostrar éxito
-            document.getElementById('modal-confirmacion').style.display = 'none';
-            document.getElementById('exito-nombre').textContent = estudianteActual.nombre;
-            document.getElementById('modal-exito').style.display = 'flex';
+        if (error) throw error;
 
-        } catch (error) {
-            console.error('Error al enviar respuestas:', error);
-            alert('❌ Error al enviar respuestas. Por favor, intenta nuevamente.\n\n' + error.message);
-        }
+        // Mostrar éxito
+        document.getElementById('modal-confirmacion').style.display = 'none';
+        document.getElementById('exito-nombre').textContent = estudianteActual.nombre;
+        document.getElementById('modal-exito').style.display = 'flex';
+
+      } catch (error) {
+        console.error('Error al enviar respuestas:', error);
+        alert('❌ Error al enviar respuestas.\n\n' + error.message);
+      }
     }
 
     // ============================================
     // FUNCIONES AUXILIARES
     // ============================================
     function actualizarEstado() {
-      const respondidas = Object.keys(estadoTest.respuestas).length;
-      const progreso = (respondidas / bancoPreguntas.length) * 100;
+        const respondidas = Object.keys(estadoTest.respuestas).length;
+        const progreso = (respondidas / bancoPreguntas.length) * 100;
 
-      document.getElementById('contador-preguntas').textContent = 
-        `Pregunta ${estadoTest.preguntaActual + 1} de ${bancoPreguntas.length}`;
-      document.getElementById('contador-respondidas').textContent = 
-        `Respondidas: ${respondidas}/${bancoPreguntas.length}`;
-      document.querySelector('.progreso-actual').style.width = `${progreso}%`;
+        document.getElementById('contador-preguntas').textContent =
+                `Pregunta ${estadoTest.preguntaActual + 1} de ${bancoPreguntas.length}`;
+        document.getElementById('contador-respondidas').textContent =
+                `Respondidas: ${respondidas}/${bancoPreguntas.length}`;
+        document.querySelector('.progreso-actual').style.width = `${progreso}%`;
 
-      // Actualizar mapa
-      actualizarMapaPreguntas();
+        // Actualizar mapa
+        actualizarMapaPreguntas();
     }
 
     function generarMapaPreguntas() {
-      const mapa = document.getElementById('mapa-botones');
-      mapa.innerHTML = bancoPreguntas.map((p, i) => 
-        `<button class="btn-mapa" data-index="${i}">${p.numero}</button>`
-      ).join('');
+        const mapa = document.getElementById('mapa-botones');
+        mapa.innerHTML = bancoPreguntas.map((p, i) =>
+                `<button class="btn-mapa" data-index="${i}">${p.numero}</button>`
+        ).join('');
 
-      mapa.querySelectorAll('.btn-mapa').forEach(btn => {
-        btn.addEventListener('click', (e) => {
-          const index = parseInt(e.target.dataset.index);
-          estadoTest.preguntaActual = index;
-          renderizarPregunta(index);
+        mapa.querySelectorAll('.btn-mapa').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                const index = parseInt(e.target.dataset.index);
+                estadoTest.preguntaActual = index;
+                renderizarPregunta(index);
+            });
         });
-      });
     }
 
     function actualizarMapaPreguntas() {
-      document.querySelectorAll('.btn-mapa').forEach((btn, i) => {
-        const numeroPregunta = bancoPreguntas[i].numero;
-        btn.classList.remove('respondida', 'actual');
-        
-        if (estadoTest.respuestas[numeroPregunta]) {
-          btn.classList.add('respondida');
-        }
-        
-        if (i === estadoTest.preguntaActual) {
-          btn.classList.add('actual');
-        }
-      });
+        document.querySelectorAll('.btn-mapa').forEach((btn, i) => {
+            const numeroPregunta = bancoPreguntas[i].numero;
+            btn.classList.remove('respondida', 'actual');
+
+            if (estadoTest.respuestas[numeroPregunta]) {
+                btn.classList.add('respondida');
+            }
+
+            if (i === estadoTest.preguntaActual) {
+                btn.classList.add('actual');
+            }
+        });
     }
 
     function actualizarNavegacion(index) {
-      document.getElementById('btn-anterior').disabled = (index === 0);
-      
-      if (index === bancoPreguntas.length - 1) {
-        document.getElementById('btn-siguiente').style.display = 'none';
-        document.getElementById('btn-finalizar').style.display = 'inline-block';
-      } else {
-        document.getElementById('btn-siguiente').style.display = 'inline-block';
-        document.getElementById('btn-finalizar').style.display = 'none';
-      }
+        document.getElementById('btn-anterior').disabled = (index === 0);
+
+        if (index === bancoPreguntas.length - 1) {
+            document.getElementById('btn-siguiente').style.display = 'none';
+            document.getElementById('btn-finalizar').style.display = 'inline-block';
+        } else {
+            document.getElementById('btn-siguiente').style.display = 'inline-block';
+            document.getElementById('btn-finalizar').style.display = 'none';
+        }
     }
 
   </script>
@@ -1335,146 +1767,119 @@ Crea un **artefacto HTML completo** con las siguientes características:
 
 ---
 
-## Integración con Supabase
+## Flujo de Trabajo Completo
 
-### ✅ Tabla `estudiantes` (ya existente)
+### Para Generar un Nuevo Simulacro:
+
+1. **Consultar preguntas ya usadas** (manual, desde Supabase):
 ```sql
-CREATE TABLE estudiantes (
-  documento INT8 PRIMARY KEY,
-  nombre VARCHAR NOT NULL
-);
+SELECT pregunta, tema, componente, competencia, version_simulacro
+FROM preguntas_usadas
+WHERE institucion_id = 'UUID_INSTITUCION'
+ORDER BY created_at DESC;
 ```
 
-### ✅ Tabla `respuestas_estudiantes` (ya existente)
-```sql
-CREATE TABLE respuestas_estudiantes (
-  id SERIAL PRIMARY KEY,
-  documento_estudiante INT8 REFERENCES estudiantes(documento),
-  respuestas JSONB NOT NULL,
-  respuestas_detalladas JSONB NOT NULL
-);
+2. **Formatear y proporcionar a Claude**:
+```
+Genera un simulacro con 30 preguntas NUEVAS.
+
+⚠️ PREGUNTAS YA USADAS (NO REPETIR):
+
+1. TEMA: Álgebra - Ecuaciones lineales
+   PREGUNTA: Si 3x + 5 = 20...
+   
+2. TEMA: Geometría - Áreas
+   PREGUNTA: Un rectángulo tiene...
+
+[... listar todas las preguntas usadas ...]
+
+Genera preguntas DIFERENTES sobre los mismos temas.
 ```
 
-### 📤 Formato de envío a Supabase
+3. **Claude genera el artefacto** con:
+    - 30 preguntas nuevas
+    - Modal de admin incluido
+    - Código para guardar preguntas en Supabase
 
-Para cada estudiante, se inserta **UN SOLO registro** con todas las respuestas en formato JSON:
+4. **Usar el artefacto**:
+    - Como admin: Te autenticas → Seleccionas institución → Guardas preguntas
+    - Como estudiante: Te autenticas → Haces el simulacro normalmente
+
+---
+
+## Validaciones Críticas
+
+### OBLIGATORIO: Todas las Preguntas Deben Estar Respondidas
 ```javascript
-// Preparar objeto de respuestas SIMPLE
-const objetoRespuestas = {};
-bancoPreguntas.forEach(pregunta => {
-    objetoRespuestas[pregunta.numero] = estadoTest.respuestas[pregunta.numero] || 'SIN_RESPUESTA';
-});
-
-// Preparar objeto de respuestas DETALLADAS con análisis
-const respuestasDetalladas = {};
-bancoPreguntas.forEach(pregunta => {
-    const respuestaEstudiante = estadoTest.respuestas[pregunta.numero] || 'SIN_RESPUESTA';
-    const esCorrecta = respuestaEstudiante === pregunta.respuesta_correcta;
-
-    respuestasDetalladas[pregunta.numero] = {
-        respuesta: respuestaEstudiante,
-        competencia: pregunta.competencia,
-        componente: pregunta.componente,
-        tema: pregunta.tema,
-        acierto: esCorrecta,
-        respuesta_correcta: pregunta.respuesta_correcta
-    };
-});
-
-// Preparar registro único
-const registro = {
-    documento_estudiante: estudianteActual.documento,
-    respuestas: objetoRespuestas,
-    respuestas_detalladas: respuestasDetalladas
-    // created_at y notificado se generan automáticamente en la BD
-};
-
-try {
-    const { data, error } = await supabaseClient
-        .from('respuestas_estudiantes')
-        .insert([registro]);
-
-    if (error) throw error;
-
-    // Mostrar éxito
-    document.getElementById('modal-confirmacion').style.display = 'none';
-    document.getElementById('exito-nombre').textContent = estudianteActual.nombre;
-    document.getElementById('modal-exito').style.display = 'flex';
-
-} catch (error) {
-    console.error('Error al enviar respuestas:', error);
-    alert('❌ Error al enviar respuestas. Por favor, intenta nuevamente.\n\n' + error.message);
+// Antes de enviar a Supabase
+async function enviarRespuestas() {
+  const respondidas = Object.keys(estadoTest.respuestas).length;
+  const totalPreguntas = bancoPreguntas.length;
+  
+  if (respondidas < totalPreguntas) {
+    const faltantes = totalPreguntas - respondidas;
+    alert(`⚠️ Debes responder TODAS las preguntas.\n\nFaltan ${faltantes} pregunta(s) por responder.`);
+    return; // NO enviar
+  }
+  
+  // Continuar con el envío solo si todas están respondidas
+  // ...
 }
 ```
 
 ---
 
-## Análisis de Resultados (Próxima Fase)
+## Análisis de Resultados
 
-Una vez el usuario adjunte un documento con:
+### Análisis Individual (ya implementado)
+
+Genera un análisis exhaustivo con:
+- Puntaje global
+- Desempeño por competencia
+- Desempeño por componente
+- Temas débiles específicos
+- Plan de mejora personalizado
+
+### Análisis Grupal (cuando se solicite)
+
+Cuando se proporcionen consolidados de múltiples estudiantes de una institución:
 ```
-| documento_estudiante | respuestas      | 
-|----------------------|-----------------|
-| 1234567890           | JSON            |
-| 1234567890           | JSON            |
-```
+Analiza estos resultados grupales:
 
-Deberás generar un **análisis de falencias** que incluya:
+INSTITUCIÓN: Colegio San José
+TOTAL ESTUDIANTES: 35
+DATOS: [JSON con respuestas de todos]
 
-### 📊 Indicadores Clave
-1. **Puntaje global**: X/30 preguntas correctas (Y%)
-2. **Desempeño por competencia**:
-    - Razonamiento: X/10 correctas
-    - Modelación: X/10 correctas
-    - Resolución de problemas: X/10 correctas
-3. **Desempeño por componente**:
-    - Numérico-variacional: X%
-    - Geométrico-métrico: X%
-    - Aleatorio: X%
-4. **Preguntas falladas**: Listado con justificación
-5. **Recomendaciones**: Temas específicos a reforzar
+Genera informe que incluya:
 
----
+1. ESTADÍSTICAS GENERALES
+   - Promedio grupal
+   - Distribución por niveles de desempeño
+   - Mejor y peor puntaje
 
-## Criterios de Calidad
+2. FORTALEZAS GRUPALES
+   - Competencias donde sobresalen
+   - Componentes con buen desempeño
+   - Temas dominados
+   - Qué están haciendo bien
 
-### ✅ Diseño y UX
-- Interfaz limpia, profesional, similar al diseño oficial ICFES
-- Responsive (funcional en desktop, tablet, móvil)
-- Tipografía legible (mínimo 16px)
-- Contraste adecuado
-- Animaciones suaves
+3. DEBILIDADES GRUPALES
+   - Competencias críticas
+   - Componentes problemáticos
+   - Temas con mayor dificultad
+   - Preguntas más falladas
 
-### ✅ Contenido de Preguntas
-- Contextos realistas y variados
-- Redacción clara
-- Opciones homogéneas
-- Distractores plausibles
-- Balance de dificultad: 40% fácil, 40% medio, 20% difícil
+4. ANÁLISIS DE PATRONES
+   - Errores comunes recurrentes
+   - Correlaciones entre debilidades
 
-### ✅ Gráficos
-- Datos coherentes
-- Ejes etiquetados
-- Leyendas claras
-- Colores armoniosos
-- Tamaño adecuado
+5. RECOMENDACIONES PEDAGÓGICAS
+   - Estrategias de enseñanza sugeridas
+   - Temas prioritarios para reforzar
+   - Recursos didácticos recomendados
+   - Plan de intervención grupal
 
----
-
-## Entregables
-
-1. **Artefacto HTML funcional** con:
-    - Modal de autenticación con Supabase
-    - 30 preguntas (10 con gráficos)
-    - Navegación completa
-    - Envío a Supabase mediante librería oficial
-
-2. **Archivo JSON** con el banco de preguntas estructurado
-
-3. **Comentario en el código** indicando donde configurar:
-```javascript
-   const SUPABASE_URL = 'TU_URL_AQUÍ';
-   const SUPABASE_ANON_KEY = 'TU_KEY_AQUÍ';
+TONO: Constructivo, reconociendo fortalezas y señalando áreas de mejora.
 ```
 
 ---
@@ -1483,18 +1888,41 @@ Deberás generar un **análisis de falencias** que incluya:
 
 ❌ NO usar localStorage/sessionStorage  
 ❌ NO importar imágenes externas  
-❌ NO copiar preguntas literales  
+❌ NO copiar preguntas literales de pruebas oficiales  
 ✅ USAR librería oficial de Supabase  
 ✅ GENERAR gráficos con código  
-✅ INNOVAR sobre patrones ICFES
+✅ INNOVAR sobre patrones ICFES  
+✅ INCLUIR modal de administrador  
+✅ VALIDAR respuesta completa antes de enviar
 
 ---
 
-##Extra
-- Todas las preguntas son obligatorias. no se puede enviar las respuestas a supabase si alguna pregunta no está respondida. Entonces antes de finalizar y enviar respuestas se debe verificar y obligar a marcar todas las preguntas.
+## Configuración de Supabase
 
-- Cuando te envie varios consolidados de respuestas de respondidas por los estudiantes te pediré un informe que abarque de forma general como les fue al grupo completo. Cuales fueron sus falencias, que deben reforzar y por otro lado hay que exhaltar lo positivo, así que también en el informe señalaras que fortalezas encontraste (si las hay).
+En el código HTML, indica claramente:
+```javascript
+// ⚠️ CONFIGURAR AQUÍ TUS CREDENCIALES DE SUPABASE
+const SUPABASE_URL = 'https://tu-proyecto.supabase.co';
+const SUPABASE_ANON_KEY = 'tu-anon-key-aqui';
+```
 
 ---
 
-¿Tienes acceso a los archivos adjuntos? Una vez los tengas, genera el artefacto HTML completo con las 30 preguntas. 🚀
+## Entregables
+
+1. **Artefacto HTML funcional** con:
+    - Modal de autenticación
+    - Modal de administrador (NUEVO)
+    - 30 preguntas únicas (10+ con gráficos)
+    - Navegación completa
+    - Validación de respuestas completas
+    - Envío a Supabase con institucion_id
+
+2. **Preguntas innovadoras** que:
+    - NO repliquen las proporcionadas como "ya usadas"
+    - Evalúen los mismos temas con enfoques diferentes
+    - Mantengan calidad y nivel ICFES
+
+---
+
+¿Tienes los materiales oficiales ICFES y el listado de preguntas ya usadas (si aplica)? Una vez los tengas, genera el artefacto completo. 🚀
