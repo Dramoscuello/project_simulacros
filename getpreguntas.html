@@ -1,0 +1,892 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Consultar Preguntas Usadas por Institución</title>
+
+    <!-- Supabase JS Client -->
+    <script src="./supabase-js@2"></script>
+
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 2rem;
+        }
+
+        .contenedor-principal {
+            background: white;
+            padding: 3rem;
+            border-radius: 16px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            max-width: 1200px;
+            width: 100%;
+            animation: slideUp 0.5s ease;
+        }
+
+        @keyframes slideUp {
+            from {
+                transform: translateY(30px);
+                opacity: 0;
+            }
+            to {
+                transform: translateY(0);
+                opacity: 1;
+            }
+        }
+
+        h1 {
+            color: #667eea;
+            margin-bottom: 0.5rem;
+            font-size: 2rem;
+        }
+
+        .subtitulo {
+            color: #666;
+            margin-bottom: 2rem;
+            font-size: 1rem;
+        }
+
+        .seccion-config {
+            background: #f8f9fa;
+            padding: 2rem;
+            border-radius: 12px;
+            margin-bottom: 2rem;
+        }
+
+        .seccion-config h3 {
+            color: #333;
+            margin-bottom: 1rem;
+            font-size: 1.25rem;
+        }
+
+        .grid-config {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1.5rem;
+        }
+
+        .form-group {
+            margin-bottom: 1.5rem;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 0.5rem;
+            color: #333;
+            font-weight: 600;
+        }
+
+        .form-group input,
+        .form-group select {
+            width: 100%;
+            padding: 0.75rem;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 1rem;
+            transition: all 0.3s;
+        }
+
+        .form-group input:focus,
+        .form-group select:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        .form-group small {
+            display: block;
+            margin-top: 0.25rem;
+            color: #666;
+            font-size: 0.85rem;
+        }
+
+        .btn {
+            padding: 0.75rem 1.5rem;
+            border: none;
+            border-radius: 8px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .btn-primario {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+        .btn-primario:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        }
+
+        .btn-primario:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .btn-secundario {
+            background: #f5f5f5;
+            color: #333;
+            border: 2px solid #e0e0e0;
+        }
+
+        .btn-secundario:hover {
+            background: #e0e0e0;
+            border-color: #ccc;
+        }
+
+        .btn-exito {
+            background: #4caf50;
+            color: white;
+        }
+
+        .btn-exito:hover {
+            background: #45a049;
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(76, 175, 80, 0.4);
+        }
+
+        .acciones {
+            display: flex;
+            gap: 1rem;
+            margin-bottom: 2rem;
+        }
+
+        .mensaje {
+            padding: 1rem;
+            border-radius: 8px;
+            margin-bottom: 1.5rem;
+            display: none;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .mensaje.visible {
+            display: flex;
+        }
+
+        .mensaje-error {
+            background: #ffebee;
+            color: #c62828;
+            border-left: 4px solid #c62828;
+        }
+
+        .mensaje-exito {
+            background: #e8f5e9;
+            color: #2e7d32;
+            border-left: 4px solid #4caf50;
+        }
+
+        .mensaje-info {
+            background: #e3f2fd;
+            color: #1565c0;
+            border-left: 4px solid #2196f3;
+        }
+
+        .mensaje-loading {
+            background: #fff3e0;
+            color: #e65100;
+            border-left: 4px solid #ff9800;
+        }
+
+        .estadisticas {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1rem;
+            margin-bottom: 2rem;
+        }
+
+        .stat-card {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 1.5rem;
+            border-radius: 12px;
+            text-align: center;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+
+        .stat-numero {
+            font-size: 2.5rem;
+            font-weight: bold;
+            margin-bottom: 0.5rem;
+        }
+
+        .stat-label {
+            font-size: 0.9rem;
+            opacity: 0.9;
+        }
+
+        .contenedor-resultados {
+            display: none;
+        }
+
+        .contenedor-resultados.visible {
+            display: block;
+        }
+
+        .tabla-contenedor {
+            background: #f8f9fa;
+            border-radius: 12px;
+            overflow: hidden;
+            margin-bottom: 2rem;
+        }
+
+        .tabla-header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 1rem 1.5rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .tabla-header h3 {
+            margin: 0;
+        }
+
+        .tabla-scroll {
+            max-height: 600px;
+            overflow-y: auto;
+        }
+
+        .tabla {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        .tabla thead {
+            background: #f5f5f5;
+            position: sticky;
+            top: 0;
+            z-index: 10;
+        }
+
+        .tabla th {
+            padding: 1rem;
+            text-align: left;
+            font-weight: 600;
+            color: #333;
+            border-bottom: 2px solid #e0e0e0;
+        }
+
+        .tabla td {
+            padding: 1rem;
+            border-bottom: 1px solid #e0e0e0;
+            color: #555;
+        }
+
+        .tabla tbody tr:hover {
+            background: #f5f7ff;
+        }
+
+        .pregunta-texto {
+            max-width: 500px;
+            line-height: 1.6;
+        }
+
+        .badge {
+            display: inline-block;
+            padding: 0.25rem 0.75rem;
+            border-radius: 20px;
+            font-size: 0.85rem;
+            font-weight: 600;
+            white-space: nowrap;
+        }
+
+        .badge-numerico {
+            background: #e3f2fd;
+            color: #1565c0;
+        }
+
+        .badge-geometrico {
+            background: #f3e5f5;
+            color: #7b1fa2;
+        }
+
+        .badge-aleatorio {
+            background: #e8f5e9;
+            color: #2e7d32;
+        }
+
+        .badge-razonamiento {
+            background: #fff3e0;
+            color: #e65100;
+        }
+
+        .badge-comunicacion {
+            background: #fce4ec;
+            color: #c2185b;
+        }
+
+        .badge-planteamiento {
+            background: #e0f2f1;
+            color: #00695c;
+        }
+
+        .preview-texto {
+            background: white;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            padding: 1.5rem;
+            font-family: 'Courier New', monospace;
+            font-size: 0.9rem;
+            line-height: 1.8;
+            max-height: 400px;
+            overflow-y: auto;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+            margin-bottom: 1rem;
+        }
+
+        .sin-resultados {
+            text-align: center;
+            padding: 3rem;
+            color: #999;
+        }
+
+        .sin-resultados svg {
+            width: 100px;
+            height: 100px;
+            margin-bottom: 1rem;
+            opacity: 0.5;
+        }
+
+        @media (max-width: 768px) {
+            .contenedor-principal {
+                padding: 1.5rem;
+            }
+
+            .grid-config {
+                grid-template-columns: 1fr;
+            }
+
+            .acciones {
+                flex-direction: column;
+            }
+
+            .btn {
+                width: 100%;
+                justify-content: center;
+            }
+
+            .estadisticas {
+                grid-template-columns: 1fr;
+            }
+
+            .tabla-scroll {
+                max-height: 400px;
+            }
+
+            .tabla {
+                font-size: 0.85rem;
+            }
+
+            .tabla th,
+            .tabla td {
+                padding: 0.75rem 0.5rem;
+            }
+
+            .pregunta-texto {
+                max-width: 100%;
+            }
+        }
+    </style>
+</head>
+<body>
+
+<div class="contenedor-principal">
+
+    <!-- ENCABEZADO -->
+    <h1>🔍 Consultar Preguntas Usadas</h1>
+    <p class="subtitulo">Consulta las preguntas utilizadas por institución y exporta en formato TXT para Claude</p>
+
+    <!-- MENSAJES -->
+    <div id="mensaje-conexion" class="mensaje"></div>
+
+    <!-- SELECCIÓN DE INSTITUCIÓN -->
+    <div id="seccion-consulta">
+        <div class="form-group">
+            <label for="institucion-select">Selecciona la institución</label>
+            <select id="institucion-select">
+                <option value="">-- Cargando instituciones... --</option>
+            </select>
+        </div>
+
+        <div class="acciones">
+            <button class="btn btn-primario" onclick="consultarPreguntas()">
+                🔎 Consultar Preguntas
+            </button>
+            <button class="btn btn-secundario" onclick="limpiarResultados()">
+                🗑️ Limpiar
+            </button>
+        </div>
+    </div>
+
+    <!-- ESTADÍSTICAS -->
+    <div id="estadisticas" class="estadisticas" style="display: none;"></div>
+
+    <!-- RESULTADOS -->
+    <div id="contenedor-resultados" class="contenedor-resultados">
+
+        <!-- TABLA DE PREGUNTAS -->
+        <div class="tabla-contenedor">
+            <div class="tabla-header">
+                <h3>📋 Preguntas Encontradas</h3>
+            </div>
+            <div class="tabla-scroll">
+                <table class="tabla">
+                    <thead>
+                    <tr>
+                        <th>#</th>
+                        <th>Pregunta</th>
+                        <th>Tema</th>
+                        <th>Componente</th>
+                        <th>Competencia</th>
+                        <th>Versión</th>
+                    </tr>
+                    </thead>
+                    <tbody id="tabla-body">
+                    <!-- Filas generadas dinámicamente -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- PREVIEW DEL ARCHIVO TXT -->
+        <div class="tabla-contenedor">
+            <div class="tabla-header">
+                <h3>📄 Preview del Archivo TXT</h3>
+            </div>
+            <div style="padding: 1.5rem;">
+                <div id="preview-texto" class="preview-texto"></div>
+                <button class="btn btn-exito" onclick="exportarTXT()">
+                    💾 Descargar Archivo TXT
+                </button>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- SIN RESULTADOS -->
+    <div id="sin-resultados" class="sin-resultados" style="display: none;">
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+        </svg>
+        <h3>No hay preguntas registradas</h3>
+        <p>Esta institución no tiene preguntas usadas en la base de datos.</p>
+    </div>
+
+</div>
+
+<script>
+    // ============================================
+    // ⚙️ CONFIGURACIÓN DE SUPABASE
+    // ============================================
+    // 🔧 CONFIGURA TUS CREDENCIALES AQUÍ:
+    const SUPABASE_URL = 'https://ikutsomtkzccnuvdvpen.supabase.co';  // Ejemplo: 'https://abcdefgh.supabase.co'
+    const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImlrdXRzb210a3pjY251dmR2cGVuIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjE5OTUxODMsImV4cCI6MjA3NzU3MTE4M30.G95k132Zvf7bDlLHrLqGxjUzhT0Vmr70ZWsbsPF1PfY';  // Ejemplo: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...'
+
+
+    // ============================================
+    // VARIABLES GLOBALES
+    // ============================================
+    let supabaseClient = null;
+    let preguntasConsultadas = [];
+    let institucionSeleccionada = null;
+
+    // ============================================
+    // CONECTAR A SUPABASE
+    // ============================================
+    async function conectarSupabase() {
+        const url = SUPABASE_URL;
+        const key = SUPABASE_ANON_KEY;
+        const mensaje = document.getElementById('mensaje-conexion');
+
+        // Validar credenciales
+        if (!url || url === 'TU_URL_DE_SUPABASE') {
+            mostrarMensaje('mensaje-conexion', 'error', '❌ Por favor configura SUPABASE_URL en el código (línea 503)');
+            return;
+        }
+
+        if (!key || key === 'TU_ANON_KEY_DE_SUPABASE') {
+            mostrarMensaje('mensaje-conexion', 'error', '❌ Por favor configura SUPABASE_ANON_KEY en el código (línea 504)');
+            return;
+        }
+
+        // Validar formato de URL
+        if (!url.includes('supabase.co')) {
+            mostrarMensaje('mensaje-conexion', 'error', '❌ La URL no parece válida. Debe contener "supabase.co"');
+            return;
+        }
+
+        mostrarMensaje('mensaje-conexion', 'loading', '🔄 Conectando a Supabase...');
+
+        try {
+            // Crear cliente de Supabase
+            const { createClient } = supabase;
+            supabaseClient = createClient(url, key);
+
+            // Probar conexión consultando instituciones
+            const { data, error } = await supabaseClient
+                .from('instituciones')
+                .select('id, nombre')
+                .eq('activo', true)
+                .order('nombre');
+
+            if (error) {
+                throw new Error('Error al consultar instituciones: ' + error.message);
+            }
+
+            // Conexión exitosa
+            mostrarMensaje('mensaje-conexion', 'exito', '✅ Conectado exitosamente a Supabase');
+            const select = document.getElementById('institucion-select');
+            select.innerHTML = '<option value="">-- Selecciona una institución --</option>';
+
+            if (data && data.length > 0) {
+                data.forEach(inst => {
+                    const option = document.createElement('option');
+                    option.value = inst.id;
+                    option.textContent = inst.nombre;
+                    select.appendChild(option);
+                });
+            } else {
+                select.innerHTML += '<option disabled>No hay instituciones registradas</option>';
+            }
+
+        } catch (error) {
+            console.error('Error de conexión:', error);
+            mostrarMensaje('mensaje-conexion', 'error', '❌ Error de conexión: ' + error.message);
+        }
+    }
+
+    // ============================================
+    // CONSULTAR PREGUNTAS
+    // ============================================
+    async function consultarPreguntas() {
+        const institucionId = document.getElementById('institucion-select').value;
+
+        if (!institucionId) {
+            alert('Por favor selecciona una institución');
+            return;
+        }
+
+        if (!supabaseClient) {
+            alert('Por favor conecta a Supabase primero');
+            return;
+        }
+
+        mostrarMensaje('mensaje-conexion', 'loading', '🔄 Consultando preguntas...');
+
+        try {
+            // Consultar preguntas de la institución
+            const { data: preguntas, error: errorPreguntas } = await supabaseClient
+                .from('preguntas_usadas')
+                .select('*')
+                .eq('institucion_id', institucionId)
+                .order('created_at', { ascending: false });
+
+            if (errorPreguntas) {
+                throw new Error('Error al consultar preguntas: ' + errorPreguntas.message);
+            }
+
+            // Guardar datos
+            preguntasConsultadas = preguntas || [];
+
+            // Obtener nombre de la institución
+            const nombreInstitucion = document.getElementById('institucion-select').selectedOptions[0].text;
+            institucionSeleccionada = {
+                id: institucionId,
+                nombre: nombreInstitucion
+            };
+
+            // Mostrar resultados
+            if (preguntas && preguntas.length > 0) {
+                mostrarMensaje('mensaje-conexion', 'exito', `✅ Se encontraron ${preguntas.length} pregunta(s)`);
+                mostrarResultados(preguntas);
+            } else {
+                mostrarMensaje('mensaje-conexion', 'info', 'ℹ️ No se encontraron preguntas para esta institución');
+                document.getElementById('sin-resultados').style.display = 'block';
+                document.getElementById('contenedor-resultados').classList.remove('visible');
+                document.getElementById('estadisticas').style.display = 'none';
+            }
+
+        } catch (error) {
+            console.error('Error:', error);
+            mostrarMensaje('mensaje-conexion', 'error', '❌ ' + error.message);
+        }
+    }
+
+    // ============================================
+    // MOSTRAR RESULTADOS
+    // ============================================
+    function mostrarResultados(preguntas) {
+        // Ocultar mensaje de sin resultados
+        document.getElementById('sin-resultados').style.display = 'none';
+
+        // Mostrar contenedor de resultados
+        document.getElementById('contenedor-resultados').classList.add('visible');
+
+        // Generar estadísticas
+        generarEstadisticas(preguntas);
+
+        // Llenar tabla
+        const tbody = document.getElementById('tabla-body');
+        tbody.innerHTML = '';
+
+        preguntas.forEach((p, index) => {
+            const tr = document.createElement('tr');
+
+            // Obtener clases de badges
+            const componenteClass = getBadgeClass(p.componente, 'componente');
+            const competenciaClass = getBadgeClass(p.competencia, 'competencia');
+
+            tr.innerHTML = `
+          <td>${index + 1}</td>
+          <td class="pregunta-texto">${p.pregunta}</td>
+          <td>${p.tema || '-'}</td>
+          <td><span class="badge ${componenteClass}">${p.componente || '-'}</span></td>
+          <td><span class="badge ${competenciaClass}">${p.competencia || '-'}</span></td>
+          <td>${p.version_simulacro || '-'}</td>
+        `;
+
+            tbody.appendChild(tr);
+        });
+
+        // Generar preview del TXT
+        generarPreviewTXT(preguntas);
+    }
+
+    // ============================================
+    // GENERAR ESTADÍSTICAS
+    // ============================================
+    function generarEstadisticas(preguntas) {
+        const statsDiv = document.getElementById('estadisticas');
+        statsDiv.style.display = 'grid';
+
+        // Contar por componente
+        const componentes = {};
+        const competencias = {};
+        const versiones = new Set();
+
+        preguntas.forEach(p => {
+            // Componentes
+            if (p.componente) {
+                componentes[p.componente] = (componentes[p.componente] || 0) + 1;
+            }
+
+            // Competencias
+            if (p.competencia) {
+                competencias[p.competencia] = (competencias[p.competencia] || 0) + 1;
+            }
+
+            // Versiones
+            if (p.version_simulacro) {
+                versiones.add(p.version_simulacro);
+            }
+        });
+
+        statsDiv.innerHTML = `
+        <div class="stat-card">
+          <div class="stat-numero">${preguntas.length}</div>
+          <div class="stat-label">Total Preguntas</div>
+        </div>
+
+        <div class="stat-card">
+          <div class="stat-numero">${Object.keys(componentes).length}</div>
+          <div class="stat-label">Componentes</div>
+        </div>
+
+        <div class="stat-card">
+          <div class="stat-numero">${Object.keys(competencias).length}</div>
+          <div class="stat-label">Competencias</div>
+        </div>
+
+        <div class="stat-card">
+          <div class="stat-numero">${versiones.size}</div>
+          <div class="stat-label">Versiones</div>
+        </div>
+      `;
+    }
+
+    // ============================================
+    // GENERAR PREVIEW TXT
+    // ============================================
+    function generarPreviewTXT(preguntas) {
+        const preview = document.getElementById('preview-texto');
+
+        let texto = '';
+        texto += '═══════════════════════════════════════════════════════════════\n';
+        texto += '  PREGUNTAS YA USADAS - NO REPETIR EN NUEVOS SIMULACROS\n';
+        texto += '═══════════════════════════════════════════════════════════════\n\n';
+        texto += `INSTITUCIÓN: ${institucionSeleccionada.nombre}\n`;
+        texto += `TOTAL DE PREGUNTAS: ${preguntas.length}\n`;
+        texto += `FECHA DE CONSULTA: ${new Date().toLocaleString('es-CO')}\n`;
+        texto += `ID INSTITUCIÓN: ${institucionSeleccionada.id}\n\n`;
+        texto += '═══════════════════════════════════════════════════════════════\n\n';
+
+        // Agrupar por versión
+        const porVersion = {};
+        preguntas.forEach(p => {
+            const version = p.version_simulacro || 'Sin versión';
+            if (!porVersion[version]) {
+                porVersion[version] = [];
+            }
+            porVersion[version].push(p);
+        });
+
+        // Generar texto por versión
+        Object.keys(porVersion).sort().forEach(version => {
+            texto += `───────────────────────────────────────────────────────────────\n`;
+            texto += `VERSIÓN: ${version}\n`;
+            texto += `───────────────────────────────────────────────────────────────\n\n`;
+
+            porVersion[version].forEach((p, index) => {
+                texto += `${index + 1}. TEMA: ${p.tema || 'Sin tema'}\n`;
+                texto += `   PREGUNTA: ${p.pregunta}\n`;
+                texto += `   Componente: ${p.componente || '-'}\n`;
+                texto += `   Competencia: ${p.competencia || '-'}\n`;
+                texto += `   Versión: ${p.version_simulacro || '-'}\n`;
+                texto += `   Fecha registro: ${new Date(p.created_at).toLocaleDateString('es-CO')}\n\n`;
+            });
+
+            texto += '\n';
+        });
+
+        texto += '═══════════════════════════════════════════════════════════════\n';
+        texto += '  FIN DEL LISTADO DE PREGUNTAS USADAS\n';
+        texto += '═══════════════════════════════════════════════════════════════\n\n';
+        texto += 'INSTRUCCIONES PARA CLAUDE:\n\n';
+        texto += 'Genera un nuevo simulacro con 30 preguntas COMPLETAMENTE DIFERENTES.\n\n';
+        texto += 'NO repitas:\n';
+        texto += '  - Las preguntas listadas arriba\n';
+        texto += '  - Contextos similares\n';
+        texto += '  - Estructuras de problema parecidas\n';
+        texto += '  - Valores numéricos iguales\n\n';
+        texto += 'SÍ debes:\n';
+        texto += '  - Evaluar los mismos temas pero con enfoques diferentes\n';
+        texto += '  - Usar contextos variados (deportes, tecnología, economía, etc.)\n';
+        texto += '  - Cambiar la complejidad y presentación\n';
+        texto += '  - Innovar manteniendo el nivel ICFES\n';
+
+        preview.textContent = texto;
+    }
+
+    // ============================================
+    // EXPORTAR TXT
+    // ============================================
+    function exportarTXT() {
+        if (preguntasConsultadas.length === 0) {
+            alert('No hay preguntas para exportar');
+            return;
+        }
+
+        const texto = document.getElementById('preview-texto').textContent;
+
+        // Crear blob
+        const blob = new Blob([texto], { type: 'text/plain;charset=utf-8' });
+
+        // Crear link de descarga
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+
+        // Nombre del archivo
+        const nombreInstitucion = institucionSeleccionada.nombre
+            .toLowerCase()
+            .replace(/\s+/g, '-')
+            .replace(/[^a-z0-9-]/g, '');
+        const fecha = new Date().toISOString().split('T')[0];
+        a.download = `preguntas-usadas-${nombreInstitucion}-${fecha}.txt`;
+
+        // Descargar
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+
+        mostrarMensaje('mensaje-conexion', 'exito', '✅ Archivo TXT descargado exitosamente');
+    }
+
+    // ============================================
+    // LIMPIAR RESULTADOS
+    // ============================================
+    function limpiarResultados() {
+        preguntasConsultadas = [];
+        institucionSeleccionada = null;
+
+        document.getElementById('contenedor-resultados').classList.remove('visible');
+        document.getElementById('estadisticas').style.display = 'none';
+        document.getElementById('sin-resultados').style.display = 'none';
+        document.getElementById('institucion-select').value = '';
+        document.getElementById('tabla-body').innerHTML = '';
+        document.getElementById('preview-texto').textContent = '';
+
+        mostrarMensaje('mensaje-conexion', 'info', 'ℹ️ Resultados limpiados');
+    }
+
+    // ============================================
+    // FUNCIONES AUXILIARES
+    // ============================================
+    function mostrarMensaje(id, tipo, texto) {
+        const mensaje = document.getElementById(id);
+        mensaje.className = `mensaje mensaje-${tipo} visible`;
+        mensaje.textContent = texto;
+
+        // Auto-ocultar después de 5 segundos (excepto loading)
+        if (tipo !== 'loading') {
+            setTimeout(() => {
+                mensaje.classList.remove('visible');
+            }, 5000);
+        }
+    }
+
+    function getBadgeClass(valor, tipo) {
+        if (tipo === 'componente') {
+            if (valor && valor.toLowerCase().includes('numérico')) return 'badge-numerico';
+            if (valor && valor.toLowerCase().includes('geométrico')) return 'badge-geometrico';
+            if (valor && valor.toLowerCase().includes('aleatorio')) return 'badge-aleatorio';
+        }
+
+        if (tipo === 'competencia') {
+            if (valor && valor.toLowerCase().includes('razonamiento')) return 'badge-razonamiento';
+            if (valor && valor.toLowerCase().includes('comunicación')) return 'badge-comunicacion';
+            if (valor && valor.toLowerCase().includes('planteamiento')) return 'badge-planteamiento';
+        }
+
+        return '';
+    }
+
+    // ============================================
+    // CONECTAR AUTOMÁTICAMENTE AL CARGAR
+    // ============================================
+    window.addEventListener('DOMContentLoaded', async () => {
+        mostrarMensaje('mensaje-conexion', 'loading', '🔄 Conectando a Supabase...');
+
+        // Pequeña pausa para que se vea el mensaje
+        await new Promise(resolve => setTimeout(resolve, 500));
+
+        // Conectar automáticamente
+        await conectarSupabase();
+    });
+
+</script>
+
+</body>
+</html>
